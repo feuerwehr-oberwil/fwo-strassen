@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Cards } from './progress'
-import { MAX_NEW, pickRound, planRound, toggleSections } from './round'
+import { INTRO_BATCH, pickRound, planRound } from './round'
 
 const streets = (n: number) => Array.from({ length: n }, (_, i) => `find:s${i}`)
 
@@ -43,37 +43,27 @@ describe('pickRound', () => {
   })
 })
 
-describe('toggleSections', () => {
-  const pool = ['find:a', 'nr:a:0', 'nr:a:1', 'find:b', 'nr:b:0', ...streets(10)]
-
-  it('swaps a few open street questions for sections, keeping the one on screen', () => {
-    const open = ['find:s0', 'find:s1', 'find:s2', 'find:s3', 'find:s4']
-    const out = toggleSections(open, new Set(open), pool, true, {}, 0)
-    expect(out[0]).toBe('find:s0')
-    expect(out.filter((k) => k.startsWith('nr:'))).toEqual(['nr:a:0', 'nr:a:1'])
-    expect(out).toHaveLength(5)
-  })
-
-  it('replaces every open section question with an unused street', () => {
-    const open = ['nr:a:0', 'find:s0', 'nr:b:0']
-    const used = new Set(['find:a', ...open])
-    expect(toggleSections(open, used, streets(3), false, {}, 0)).toEqual(['find:s1', 'find:s0', 'find:s2'])
-  })
-})
-
 describe('planRound', () => {
-  it('introduces new streets first and still asks them later in the round', () => {
+  it('introduces new streets right before their questions and keeps every pick', () => {
     const picks = ['find:old', 'find:a', 'nr:a:0', 'find:b']
     const steps = planRound(picks, { 'find:old': { box: 2, due: 0 } }, true)
-    expect(steps.slice(0, 2)).toEqual(['intro:a', 'intro:b'])
-    expect(steps.slice(2).toSorted()).toEqual(picks.toSorted())
+    expect(steps[0]).toBe('intro:a,b')
+    expect(steps.slice(1).toSorted()).toEqual(picks.toSorted())
   })
 
-  it('leaves new streets beyond the limit for later rounds', () => {
-    const picks = Array.from({ length: 6 }, (_, i) => `find:s${i}`)
+  it('introduces many new streets in batches, each followed by its own questions', () => {
+    const picks = streets(10)
     const steps = planRound(picks, {}, true)
-    expect(steps.filter((k) => k.startsWith('intro:'))).toHaveLength(MAX_NEW)
-    expect(steps.filter((k) => k.startsWith('find:'))).toHaveLength(MAX_NEW)
+    const intros = steps.filter((k) => k.startsWith('intro:'))
+    expect(intros.map((k) => k.split(',').length)).toEqual([INTRO_BATCH, INTRO_BATCH, 2])
+    // every street is asked after its intro, and before the next intro
+    intros.forEach((intro, i) => {
+      const from = steps.indexOf(intro)
+      const to = i + 1 < intros.length ? steps.indexOf(intros[i + 1]!) : steps.length
+      const asked = steps.slice(from + 1, to).map((k) => k.slice('find:'.length))
+      expect(asked.toSorted()).toEqual(intro.slice('intro:'.length).split(',').toSorted())
+    })
+    expect(steps.filter((k) => k.startsWith('find:'))).toHaveLength(10)
   })
 
   it('asks everything straight away when introductions are off', () => {
