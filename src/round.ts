@@ -1,13 +1,15 @@
 import type { Cards } from './progress'
 import { neighbours, type Item } from './town'
 
-// A round is 10 questions picked by spaced repetition, then a summary.
+// A round is 10 questions picked by spaced repetition, then a summary. Streets that are new to
+// the user are first introduced (shown with their name) and asked later in the same round.
 // Question keys: "find:<id>" / "name:<id>" for streets and named areas,
-// "nr:<id>:<section>" for house-number sections (shared by both modes).
+// "nr:<id>:<section>" for house-number sections (shared by both modes), "intro:<id>" for intros.
 
 export type Mode = 'find' | 'name'
 
 export type Question =
+  | { kind: 'intro'; key: string; item: Item; withSections: boolean }
   | { kind: 'find'; key: string; item: Item }
   | { kind: 'name'; key: string; item: Item; options: Item[] }
   | { kind: 'section'; key: string; item: Item; section: number }
@@ -16,6 +18,8 @@ export const ROUND_SIZE = 10
 /** Caps so a round with house numbers still is mostly about streets. */
 const MAX_SECTIONS = 4
 const MAX_SECTIONS_PER_STREET = 2
+/** At most this many new streets are introduced per round. */
+export const MAX_NEW = 4
 
 /**
  * All question keys for a mode, in learning order: each item (long streets first),
@@ -87,7 +91,7 @@ export function toggleSections(
     const streets = fresh((k) => !isSection(k), open.filter(isSection).length)
     return open.map((k) => (isSection(k) ? (streets.shift() ?? k) : k))
   }
-  const slots = open.flatMap((k, i) => (i > 0 && !isSection(k) ? [i] : []))
+  const slots = open.flatMap((k, i) => (i > 0 && !isSection(k) && !k.startsWith('intro:') ? [i] : []))
   const wanted = Math.min(MAX_SECTIONS, Math.round(open.length * 0.4)) - open.filter(isSection).length
   const sections = fresh(isSection, Math.max(0, wanted))
   // spread the new section questions evenly over the open street questions
@@ -97,17 +101,32 @@ export function toggleSections(
   return out
 }
 
+const streetOf = (key: string) => key.split(':')[1]!
+
+/**
+ * Orders a round's picked keys into steps. With `introduce`, every street that is new to the user
+ * (any of its keys without a card) gets an "intro:<id>" step up front, and is asked later in the
+ * round; new streets beyond MAX_NEW are left for later rounds. Questions come in random order.
+ */
+export function planRound(picks: string[], cards: Cards, introduce: boolean): string[] {
+  if (!introduce) return shuffle(picks)
+  const fresh = [...new Set(picks.filter((k) => !cards[k]).map(streetOf))].slice(0, MAX_NEW)
+  const asks = picks.filter((k) => cards[k] || fresh.includes(streetOf(k)))
+  return [...fresh.map((id) => `intro:${id}`), ...shuffle(asks)]
+}
+
 /** Turns a key into a question; "name" questions get three nearby items as wrong answers. */
 export function makeQuestion(key: string, items: Item[]): Question {
   const [kind, id, section] = key.split(':')
   const item = items.find((i) => i.id === id)!
+  if (kind === 'intro') return { kind: 'intro', key, item, withSections: false }
   if (kind === 'nr') return { kind: 'section', key, item, section: Number(section) }
   if (kind === 'name') return { kind: 'name', key, item, options: shuffle([item, ...neighbours(item, items, 3)]) }
   return { kind: 'find', key, item }
 }
 
 export function isCorrect(q: Question, pick: string | number): boolean {
-  return q.kind === 'section' ? pick === q.section : pick === q.item.id
+  return q.kind === 'section' ? pick === q.section : q.kind === 'intro' || pick === q.item.id
 }
 
 export function shuffle<T>(xs: T[]): T[] {

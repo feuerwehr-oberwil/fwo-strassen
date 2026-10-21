@@ -1,7 +1,8 @@
 // Colours shared by the map and the mode screens.
-export type Tone = 'target' | 'ok' | 'bad'
-export const TONE_COLOR: Record<Tone, string> = { target: '#f97316', ok: '#16a34a', bad: '#dc2626' }
+/** target = asked/introduced, select = tapped but not yet checked, ok/bad = after answering. */
+export type Tone = 'target' | 'select' | 'ok' | 'bad'
+export const TONE_COLOR: Record<Tone, string> = { target: '#f97316', select: '#1d4ed8', ok: '#16a34a', bad: '#dc2626' }
 
-/** One colour per house-number section, in number order. */
-export const SECTION_COLORS = ['#2563eb', '#16a34a', '#d97706', '#db2777', '#7c3aed'] as const
+/** One colour per house-number section, in number order (dark enough for white label text). */
+export const SECTION_COLORS = ['#1d4ed8', '#15803d', '#b45309', '#be185d', '#6d28d9'] as const
 export const NEUTRAL = '#57534e'

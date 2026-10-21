@@ -10,7 +10,7 @@ import {
 } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import basemap from './data/basemap.json'
 import { TONE_COLOR, type Tone } from './palette'
 import type { BBox, Town } from './town'
@@ -63,6 +63,7 @@ export function TownMap({
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<MapLibre | null>(null)
   const ready = useRef<Promise<void> | null>(null)
+  const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading')
   const handlers = useRef({ onPickItem, onPickOverlay })
   useEffect(() => {
     handlers.current = { onPickItem, onPickOverlay }
@@ -92,9 +93,12 @@ export function TownMap({
     ready.current = new Promise((resolve) =>
       m.once('load', () => {
         addTownLayers(m, town)
+        setStatus('ready')
         resolve()
       }),
     )
+    // only matters before the first load; later tile hiccups just retry
+    m.on('error', () => setStatus((s) => (s === 'loading' ? 'failed' : s)))
     const pick = (point: { x: number; y: number }) => {
       const { onPickItem, onPickOverlay } = handlers.current
       if (onPickOverlay) {
@@ -166,6 +170,13 @@ export function TownMap({
   return (
     <div className="absolute inset-0">
       <div ref={container} className="size-full" />
+      {status !== 'ready' && (
+        <div className="pointer-events-none absolute inset-0 grid place-items-center" role="status">
+          <span className="rounded-full bg-white/90 px-4 py-2 text-sm text-stone-700 shadow">
+            {status === 'loading' ? 'Karte lädt …' : 'Karte konnte nicht laden – Verbindung prüfen.'}
+          </span>
+        </div>
+      )}
     </div>
   )
 }

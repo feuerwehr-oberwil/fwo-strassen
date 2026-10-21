@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Cards } from './progress'
-import { pickRound, toggleSections } from './round'
+import { MAX_NEW, pickRound, planRound, toggleSections } from './round'
 
 const streets = (n: number) => Array.from({ length: n }, (_, i) => `find:s${i}`)
 
@@ -58,5 +58,25 @@ describe('toggleSections', () => {
     const open = ['nr:a:0', 'find:s0', 'nr:b:0']
     const used = new Set(['find:a', ...open])
     expect(toggleSections(open, used, streets(3), false, {}, 0)).toEqual(['find:s1', 'find:s0', 'find:s2'])
+  })
+})
+
+describe('planRound', () => {
+  it('introduces new streets first and still asks them later in the round', () => {
+    const picks = ['find:old', 'find:a', 'nr:a:0', 'find:b']
+    const steps = planRound(picks, { 'find:old': { box: 2, due: 0 } }, true)
+    expect(steps.slice(0, 2)).toEqual(['intro:a', 'intro:b'])
+    expect(steps.slice(2).toSorted()).toEqual(picks.toSorted())
+  })
+
+  it('leaves new streets beyond the limit for later rounds', () => {
+    const picks = Array.from({ length: 6 }, (_, i) => `find:s${i}`)
+    const steps = planRound(picks, {}, true)
+    expect(steps.filter((k) => k.startsWith('intro:'))).toHaveLength(MAX_NEW)
+    expect(steps.filter((k) => k.startsWith('find:'))).toHaveLength(MAX_NEW)
+  })
+
+  it('asks everything straight away when introductions are off', () => {
+    expect(planRound(['find:a', 'find:b'], {}, false).toSorted()).toEqual(['find:a', 'find:b'])
   })
 })

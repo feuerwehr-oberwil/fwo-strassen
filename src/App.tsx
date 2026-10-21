@@ -42,7 +42,13 @@ export default function App() {
       {...(view.map satisfies MapView)}
     />
   )
-  const dots = <RoundDots results={round.round.results} total={round.round.questions.length} />
+  // intros are not scored, so the bars count questions only
+  const dots = (
+    <RoundDots
+      results={round.round.results.filter((r): r is boolean => r !== null)}
+      total={round.round.questions.filter((q) => q.kind !== 'intro').length}
+    />
+  )
   const learned = (
     <div className="flex flex-col gap-3">
       <ProgressBar today={progress.today} {...progressCounts(round.keys, progress.cards)} />
@@ -50,8 +56,20 @@ export default function App() {
     </div>
   )
   const numbersSwitch = (label: ReactNode) => (
-    <Switch checked={round.settings.withNumbers} onChange={(withNumbers) => round.configure({ withNumbers })}>
+    <Switch
+      checked={round.settings.withNumbers}
+      onChange={(withNumbers) => round.configure({ withNumbers })}
+      label="Hausnummern abfragen"
+    >
       {label}
+    </Switch>
+  )
+  const introSwitch = (
+    <Switch checked={round.settings.intro} onChange={(intro) => round.configure({ intro })}>
+      <span className="text-left">
+        <span className="block text-sm font-semibold">Neue Strassen vorstellen</span>
+        <span className="block text-xs text-stone-600">Zuerst zeigen, dann abfragen</span>
+      </span>
     </Switch>
   )
 
@@ -71,6 +89,7 @@ export default function App() {
               <button
                 key={m.value}
                 onClick={() => round.configure({ mode: m.value })}
+                aria-pressed={m.value === round.settings.mode}
                 className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-left ${
                   m.value === round.settings.mode ? 'bg-stone-100' : 'hover:bg-stone-50'
                 }`}
@@ -85,13 +104,14 @@ export default function App() {
               </button>
             ))}
           </nav>
-          <div className="px-6 py-3">
+          <div className="flex flex-col px-6 py-2">
             {numbersSwitch(
               <span className="text-left">
                 <span className="block text-sm font-semibold">Hausnummern</span>
-                <span className="block text-xs text-stone-500">Abschnitte langer Strassen mit abfragen</span>
+                <span className="block text-xs text-stone-600">Abschnitte langer Strassen mit abfragen</span>
               </span>,
             )}
+            {introSwitch}
           </div>
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto border-t border-stone-100 px-6 py-5">
             {dots}
@@ -125,23 +145,32 @@ export default function App() {
           </div>
         </div>
       </div>
-      <div className="z-10 flex flex-col gap-2 rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_#0002]">
+      <div className="z-10 flex max-h-[55dvh] flex-col gap-2 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_#0002]">
         {view.body}
-        {!round.question && learned}
+        {!round.question && (
+          <>
+            {introSwitch}
+            {learned}
+          </>
+        )}
       </div>
     </main>
   )
 }
 
-/** Enter = next question / new round, 1–4 = answer options in «Strasse benennen». */
+/**
+ * Keyboard (desktop): Enter = Prüfen / Weiter / Neue Runde, 1–4 = answer in «Strasse benennen».
+ * Keys typed on a focused control (button, switch, input) keep their normal meaning.
+ */
 function useKeyboard(round: RoundApi) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || e.altKey || e.ctrlKey || e.metaKey) return
+      if (e.target instanceof Element && e.target.closest('button, input, select, textarea, a')) return
       const q = round.question
-      if (e.target instanceof HTMLInputElement) return // typing a backup code
       if (e.key === 'Enter') {
-        e.preventDefault() // don't also "click" the focused button
         if (!q) round.restart()
+        else if (round.round.selection !== null) round.confirm()
         else round.next()
       } else if (q?.kind === 'name' && /^[1-4]$/.test(e.key)) {
         const option = q.options[Number(e.key) - 1]

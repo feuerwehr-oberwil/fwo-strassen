@@ -1,10 +1,11 @@
-// Device-class regression check for «double tap on the map answers instead of zooming» (iPhone).
+// Device-class regression check for taps on the map (iPhone): a double tap must zoom, never
+// select or answer; a single tap only selects, «Prüfen» answers.
 // Playwright WebKit with the iPhone 13 profile and real touch taps; needs `pnpm dev` on :5310.
 //
 //   PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1 \
 //   LD_LIBRARY_PATH=$HOME/.cache/pwlibs/ext/usr/lib/x86_64-linux-gnu node e2e/double-tap.mjs
 //
-// Green when: a double tap on a street zooms in and does not answer, and a single tap answers.
+// Green when all checks below print GREEN.
 import { devices, webkit } from '@playwright/test'
 
 const URL = process.env.URL ?? 'http://127.0.0.1:5310/'
@@ -14,7 +15,7 @@ const results = []
 async function freshPage() {
   const context = await browser.newContext({ ...devices['iPhone 13'] })
   await context.addInitScript(() => {
-    localStorage.setItem('fwo-strassen:settings', JSON.stringify({ mode: 'find', withNumbers: false }))
+    localStorage.setItem('fwo-strassen:settings', JSON.stringify({ mode: 'find', withNumbers: false, intro: false }))
   })
   const page = await context.newPage()
   await page.goto(URL)
@@ -29,14 +30,15 @@ async function freshPage() {
     const r = m.getCanvas().getBoundingClientRect()
     return { x: r.left + p.x, y: r.top + p.y }
   })
-  const answered = () => page.evaluate(() => /Richtig|Das war/.test(document.querySelector('main').innerText))
+  const answered = () => page.evaluate(() => /Richtig|Falsch/.test(document.querySelector('main').innerText))
+  const selected = () => page.getByRole('button', { name: /Prüfen/ }).isVisible()
   const zoom = () => page.evaluate(() => window.townMap.getZoom())
-  return { context, page, point, answered, zoom }
+  return { context, page, point, answered, selected, zoom }
 }
 
 // a quick and a slow double tap (time between the two taps)
 for (const gap of [120, 250]) {
-  const { context, page, point, answered, zoom } = await freshPage()
+  const { context, page, point, answered, selected, zoom } = await freshPage()
   const before = await zoom()
   await page.touchscreen.tap(point.x, point.y)
   await page.waitForTimeout(gap)
@@ -44,14 +46,20 @@ for (const gap of [120, 250]) {
   await page.waitForTimeout(1000)
   const after = await zoom()
   results.push({ check: `double tap (${gap} ms) zooms`, ok: after > before + 0.5, before, after })
-  results.push({ check: `double tap (${gap} ms) does not answer`, ok: !(await answered()) })
+  results.push({
+    check: `double tap (${gap} ms) neither selects nor answers`,
+    ok: !(await answered()) && !(await selected()),
+  })
   await context.close()
 }
 {
-  const { context, page, point, answered } = await freshPage()
+  const { context, page, point, answered, selected } = await freshPage()
   await page.touchscreen.tap(point.x, point.y)
   await page.waitForTimeout(800)
-  results.push({ check: 'single tap answers', ok: await answered() })
+  results.push({ check: 'single tap selects without answering', ok: (await selected()) && !(await answered()) })
+  await page.getByRole('button', { name: /Prüfen/ }).tap()
+  await page.waitForTimeout(300)
+  results.push({ check: '«Prüfen» answers', ok: await answered() })
   await context.close()
 }
 

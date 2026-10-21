@@ -16,7 +16,8 @@ export function Segmented<T extends string>({
         <button
           key={o.value}
           onClick={() => onChange(o.value)}
-          className={`flex-1 rounded-lg px-1 py-1.5 text-[13px] font-semibold tracking-tight whitespace-nowrap ${
+          aria-pressed={o.value === value}
+          className={`min-h-11 flex-1 rounded-lg px-1 text-[13px] font-semibold tracking-tight whitespace-nowrap ${
             o.value === value ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600'
           }`}
         >
@@ -31,10 +32,15 @@ export function Button({
   children,
   onClick,
   tone = 'plain',
+  disabled = false,
+  autoFocus = false,
 }: {
   children: ReactNode
   onClick: () => void
   tone?: 'plain' | 'primary' | 'ok' | 'bad'
+  disabled?: boolean
+  /** Focus the button when it appears, so Enter activates it. */
+  autoFocus?: boolean
 }) {
   const tones = {
     plain: 'bg-stone-100 text-stone-900 hover:bg-stone-200',
@@ -45,7 +51,9 @@ export function Button({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left font-semibold ${tones[tone]}`}
+      disabled={disabled}
+      autoFocus={autoFocus}
+      className={`flex min-h-12 items-center gap-3 rounded-xl px-4 py-3 text-left font-semibold focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-stone-900 disabled:cursor-default ${tones[tone]}`}
     >
       {children}
     </button>
@@ -56,14 +64,23 @@ export function Button({
 export function Switch({
   checked,
   onChange,
+  label,
   children,
 }: {
   checked: boolean
   onChange: (checked: boolean) => void
+  /** Accessible name, when the visible text is short (e.g. "Nr."). */
+  label?: string
   children: ReactNode
 }) {
   return (
-    <button role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className="flex items-center gap-2">
+    <button
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className="flex min-h-11 items-center gap-2"
+    >
       <span className={`relative h-6 w-10 shrink-0 rounded-full transition ${checked ? 'bg-red-600' : 'bg-stone-300'}`}>
         <span
           className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-all ${checked ? 'left-[18px]' : 'left-0.5'}`}
@@ -76,8 +93,9 @@ export function Switch({
 
 /** One bar per question of the round: green right, red wrong, dark = current. */
 export function RoundDots({ results, total }: { results: boolean[]; total: number }) {
+  const label = `Frage ${Math.min(results.length + 1, total)} von ${total}, ${results.filter(Boolean).length} richtig`
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-1" role="img" aria-label={label}>
       {Array.from({ length: total }, (_, i) => (
         <span
           key={i}
