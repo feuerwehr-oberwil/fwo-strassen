@@ -1,11 +1,12 @@
-import { Suspense, use, useEffect, useMemo, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import snailMap from './assets/snail-map.webp'
 import { useBackup } from './backup'
+import town from './data/oberwil.json'
 import { BackupPanel } from './BackupPanel'
 import { progressCounts, useProgress } from './progress'
 import { questionView, type MapView } from './questionView'
 import type { Mode } from './round'
-import { streetsBBox, type Town } from './town'
+import { streetsBBox } from './town'
 import { TownMap, type Padding } from './TownMap'
 import { ProgressBar, RoundDots, Segmented, Switch } from './ui'
 import { useMediaQuery } from './useMediaQuery'
@@ -16,31 +17,20 @@ const MODES = [
   { value: 'name', label: 'Strasse benennen', short: 'Benennen', hint: 'Karte → Name' },
 ] as const satisfies readonly { value: Mode; label: string; short: string; hint: string }[]
 
-// Loaded once at startup (kept out of town.ts so tests can import it without a fetch).
-const townPromise: Promise<Town> = fetch(`${import.meta.env.BASE_URL}oberwil.json`).then(
-  (r) => r.json() as Promise<Town>,
-)
+// town (data/oberwil.json) is bundled into the hashed JS, so app and data can never come from
+// different deploys (GitHub Pages caches loose files for 10 minutes).
+const overview = streetsBBox(town.items)
 
 const PHONE_PADDING: Padding = { top: 170, bottom: 24, left: 24, right: 24 }
 const DESKTOP_PADDING: Padding = { top: 48, bottom: 48, left: 48, right: 48 }
 
-export default function App() {
-  return (
-    <Suspense fallback={<div className="grid h-dvh place-items-center text-stone-500">Karte wird geladen …</div>}>
-      <Trainer />
-    </Suspense>
-  )
-}
-
 // Phone: map with the question on top and answers in a bottom sheet.
 // Desktop (≥ 1024 px): sidebar with modes, question and progress; map on the right.
-function Trainer() {
-  const town = use(townPromise)
+export default function App() {
   const progress = useProgress()
   const backup = useBackup(progress)
   const round = useRound(town, progress)
   const desktop = useMediaQuery('(min-width: 1024px)')
-  const overview = useMemo(() => streetsBBox(town.items), [town])
   const view = questionView({ round, overview, desktop })
   useKeyboard(round)
 

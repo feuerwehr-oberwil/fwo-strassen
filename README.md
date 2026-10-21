@@ -38,7 +38,7 @@ cd server && uv run uvicorn app:app --reload # local, then: VITE_BACKUP_URL=http
 
 ## Data
 
-`public/oberwil.json` is generated and committed. To refresh it from swisstopo:
+`src/data/oberwil.json` and `src/data/basemap.json` are generated, committed and bundled into the JS. To refresh it from swisstopo:
 
 ```sh
 pnpm data                        # = cd data && uv run build.py  (~150 MB download, cached in data/cache)

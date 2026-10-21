@@ -11,6 +11,7 @@ import {
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef } from 'react'
+import basemap from './data/basemap.json'
 import { TONE_COLOR, type Tone } from './palette'
 import type { BBox, Town } from './town'
 
@@ -35,8 +36,8 @@ export type TownMapProps = {
 setWorkerUrl(workerUrl)
 
 // swisstopo base map (buildings, forest, water) without labels, so the map never gives away a
-// street name. Trimmed to Oberwil by data/basemap.py and preloaded in index.html.
-const BASE_STYLE = `${import.meta.env.BASE_URL}basemap.json`
+// street name. Trimmed to Oberwil by data/basemap.py and bundled, so no style request.
+const BASE_STYLE = basemap
 /** A tap waits this long for a second tap: a double tap zooms in and must not answer. */
 const DOUBLE_TAP_MS = 250
 export type Padding = { top: number; bottom: number; left: number; right: number }

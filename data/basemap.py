@@ -1,4 +1,4 @@
-"""Build public/basemap.json: swisstopo's light base map, trimmed to what the trainer needs.
+"""Build src/data/basemap.json: swisstopo's light base map, trimmed to what the trainer needs.
 
 Run from this directory: `uv run basemap.py`. Re-run when swisstopo updates its style.
 
@@ -14,7 +14,7 @@ from pathlib import Path
 
 STYLE = "https://vectortiles.geo.admin.ch/styles/ch.swisstopo.lightbasemap.vt/style.json"
 HERE = Path(__file__).parent
-OUT = HERE.parent / "public" / "basemap.json"
+OUT = HERE.parent / "src" / "data" / "basemap.json"
 MARGIN = 0.02  # degrees around the town (~1.5 km)
 DROP_SOURCE_LAYERS = {"hillshade", "hachure", "contour_line", "scree", "aeroway"}
 
@@ -30,7 +30,7 @@ def main() -> None:
     style = get(STYLE)
     base_id, base = next((k, v) for k, v in style["sources"].items() if k.startswith("base"))
     tilejson = get(base["url"])
-    town = json.loads((HERE.parent / "public" / "oberwil.json").read_text())
+    town = json.loads((HERE.parent / "src" / "data" / "oberwil.json").read_text())
     w, s, e, n = town["bbox"]
 
     layers = [

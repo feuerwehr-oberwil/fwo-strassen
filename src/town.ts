@@ -1,6 +1,6 @@
 import type { Geometry, LineString, MultiLineString } from 'geojson'
 
-// Shape of public/oberwil.json, written by data/build.py.
+// Shape of src/data/oberwil.json, written by data/build.py.
 export type LngLat = [lng: number, lat: number]
 export type BBox = [west: number, south: number, east: number, north: number]
 

@@ -1,4 +1,4 @@
-"""Build public/oberwil.json from swisstopo open data.
+"""Build src/data/oberwil.json from swisstopo open data.
 
 Run from this directory: `uv run build.py`. Downloads are cached in ./cache.
 
@@ -28,7 +28,7 @@ LONG_STREET_M = 500  # streets longer than this get house-number sections
 STATION = ("Löchlimattstrasse", "1")  # Feuerwehrmagazin, the only marker on the map
 HERE = Path(__file__).parent
 CACHE = HERE / "cache"
-OUT = HERE.parent / "public" / "oberwil.json"
+OUT = HERE.parent / "src" / "data" / "oberwil.json"
 
 STREETS = "https://data.geo.admin.ch/ch.swisstopo.amtliches-strassenverzeichnis/amtliches-strassenverzeichnis_ch/amtliches-strassenverzeichnis_ch_2056"
 ADDRESSES = "https://data.geo.admin.ch/ch.swisstopo.amtliches-gebaeudeadressverzeichnis/amtliches-gebaeudeadressverzeichnis_ch/amtliches-gebaeudeadressverzeichnis_ch_2056"
