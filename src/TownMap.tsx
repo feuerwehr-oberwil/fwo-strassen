@@ -13,19 +13,24 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef, useState } from 'react'
 import basemap from './data/basemap.json'
 import { TONE_COLOR, type Tone } from './palette'
-import type { BBox, Town } from './town'
+import { segmentDistance, type BBox, type Town } from './town'
 
 /** Extra lines drawn on top (house-number sections), pickable by `key`. */
-export type Overlay = { key: number; geometry: Geometry; color: string; label?: string }
+export type Overlay = { key: number; geometry: Geometry; color: string }
+/** A badge on the map: a name above a line, or a round numbered `pin` on it. */
+export type Label = { text: string; color: string; at: Geometry; pin?: boolean }
 
 export type TownMapProps = {
   town: Town
-  /** Items to colour, e.g. the asked street in orange. */
-  highlights: { id: string; tone: Tone }[]
+  /** Items to colour, e.g. the asked street in orange; `dashed` marks the user's wrong tap. */
+  highlights: { id: string; tone: Tone; dashed?: boolean }[]
   overlays?: Overlay[]
-  /** The map fits this box whenever it (or `refitKey`) changes, keeping `padding` px free for UI. */
+  /** Most important first: a label that would cover an earlier one or hide under the UI is left out. */
+  labels?: Label[]
+  /** The map fits this box whenever it (or `refitKey`) changes. */
   fit: BBox
-  padding: Padding
+  /** Px to keep free for the UI around the map; measured at fit time, so it follows the layout. */
+  padding: () => Padding
   refitKey?: string
   /** What a tap selects. Taps are ignored when no handler is given. */
   onPickItem?: (id: string) => void
@@ -42,7 +47,10 @@ const BASE_STYLE = basemap
 const DOUBLE_TAP_MS = 300
 export type Padding = { top: number; bottom: number; left: number; right: number }
 const TAP_RADIUS = 18 // px
+/** Breathing room the callers add to their padding; labels may use it. */
+export const UI_GAP = 16
 const NO_OVERLAYS: Overlay[] = []
+const NO_LABELS: Label[] = []
 
 const collection = (features: Feature[]): FeatureCollection => ({ type: 'FeatureCollection', features })
 
@@ -54,6 +62,7 @@ export function TownMap({
   town,
   highlights,
   overlays = NO_OVERLAYS,
+  labels = NO_LABELS,
   fit,
   padding,
   refitKey,
@@ -64,6 +73,8 @@ export function TownMap({
   const map = useRef<MapLibre | null>(null)
   const ready = useRef<Promise<void> | null>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading')
+  const lastPadding = useRef<Padding>({ top: 0, bottom: 0, left: 0, right: 0 })
+  const markers = useRef<Marker[]>([])
   const handlers = useRef({ onPickItem, onPickOverlay })
   useEffect(() => {
     handlers.current = { onPickItem, onPickOverlay }
@@ -81,7 +92,7 @@ export function TownMap({
       maxZoom: 18,
       dragRotate: false,
       pitchWithRotate: false,
-      attributionControl: { compact: true },
+      attributionControl: false, // the app shows «© swisstopo» where the UI leaves room
       // phones report 3× pixels; 2× looks the same here and renders much faster
       pixelRatio: Math.min(window.devicePixelRatio, 2),
       fadeDuration: 0,
@@ -121,14 +132,14 @@ export function TownMap({
     m.on('dblclick', cancelTap)
     m.on('zoomstart', cancelTap)
     m.on('movestart', cancelTap)
+    m.on('move', () => declutter(m, markers.current, lastPadding.current))
     return () => {
       clearTimeout(pendingTap)
       m.remove()
     }
   }, [town])
 
-  // Highlights and overlays.
-  const labels = useRef<Marker[]>([])
+  // Highlights, overlays and labels.
   useEffect(() => {
     let cancelled = false
     void ready.current?.then(() => {
@@ -137,9 +148,17 @@ export function TownMap({
       const byId = new Map(town.items.map((i) => [i.id, i]))
       m.getSource<GeoJSONSource>('highlights')?.setData(
         collection(
-          highlights.flatMap(({ id, tone }) => {
+          highlights.flatMap(({ id, tone, dashed }) => {
             const item = byId.get(id)
-            return item ? [{ type: 'Feature', geometry: item.geometry, properties: { color: TONE_COLOR[tone] } }] : []
+            return item
+              ? [
+                  {
+                    type: 'Feature',
+                    geometry: item.geometry,
+                    properties: { color: TONE_COLOR[tone], dashed: !!dashed },
+                  },
+                ]
+              : []
           }),
         ),
       )
@@ -148,21 +167,27 @@ export function TownMap({
           overlays.map((o) => ({ type: 'Feature', geometry: o.geometry, properties: { key: o.key, color: o.color } })),
         ),
       )
-      labels.current.forEach((mk) => mk.remove())
-      labels.current = overlays.flatMap((o) =>
-        o.label ? [new Marker({ element: badge(o.label, o.color) }).setLngLat(midpoint(o.geometry)).addTo(m)] : [],
+      markers.current.forEach((mk) => mk.remove())
+      markers.current = labels.map((l) =>
+        new Marker({ element: badge(l), anchor: l.pin ? 'center' : 'bottom', offset: l.pin ? [0, 0] : [0, -8] })
+          .setLngLat(labelPoint(l.at))
+          .addTo(m),
       )
+      declutter(m, markers.current, lastPadding.current)
     })
     return () => {
       cancelled = true
     }
-  }, [town, highlights, overlays])
+  }, [town, highlights, overlays, labels])
 
   // Fit the requested box.
   const [w, s, e, n] = fit
   useEffect(() => {
-    map.current?.fitBounds([w, s, e, n], { padding, maxZoom: 16.5, duration: 600 })
-    // padding is a fresh object each render; only refit when the box or refitKey changes
+    const m = map.current
+    if (!m) return
+    lastPadding.current = padding()
+    m.fitBounds([w, s, e, n], { padding: lastPadding.current, maxZoom: 16.5, duration: 600 })
+    // padding is a fresh function each render; only refit when the box or refitKey changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refitKey, w, s, e, n])
 
@@ -238,8 +263,16 @@ function addTownLayers(m: MapLibre, town: Town) {
     id: 'highlights-line',
     type: 'line',
     source: 'highlights',
+    filter: ['!', ['get', 'dashed']],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': ['get', 'color'], 'line-width': width(4, 9) },
+  })
+  m.addLayer({
+    id: 'highlights-dashed',
+    type: 'line',
+    source: 'highlights',
+    filter: ['get', 'dashed'],
+    paint: { 'line-color': ['get', 'color'], 'line-width': width(4, 9), 'line-dasharray': [1.2, 0.8] },
   })
   m.addLayer({
     id: 'overlays-line',
@@ -285,21 +318,38 @@ function lineDistance(m: MapLibre, p: { x: number; y: number }, g: Geometry): nu
   return best
 }
 
-type XY = { x: number; y: number }
-function segmentDistance(p: XY, a: XY, b: XY): number {
-  const dx = b.x - a.x
-  const dy = b.y - a.y
-  const t = dx || dy ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy))) : 0
-  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy))
-}
-
-/** Middle vertex of the longest line – where a section's label goes. */
-function midpoint(g: Geometry): [number, number] {
+/** Where a label goes: the middle vertex of the longest line, or the middle of an area's outline. */
+function labelPoint(g: Geometry): [number, number] {
+  if (g.type === 'Polygon' || g.type === 'MultiPolygon') {
+    const ring = g.type === 'Polygon' ? g.coordinates[0]! : g.coordinates[0]![0]!
+    const avg = (i: 0 | 1) => ring.reduce((sum, p) => sum + p[i]!, 0) / ring.length
+    return [avg(0), avg(1)]
+  }
   const lines: Position[][] =
     g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : []
   const longest = lines.reduce((a, b) => (b.length > a.length ? b : a), [])
   const [lng, lat] = longest[Math.floor(longest.length / 2)] ?? [0, 0]
   return [lng!, lat!]
+}
+
+/**
+ * Shows labels in priority order and hides each one that would cover an earlier label or sit
+ * under the UI around the map (the fit padding, minus its breathing room).
+ */
+function declutter(m: MapLibre, markers: Marker[], pad: Padding) {
+  const box = m.getContainer().getBoundingClientRect()
+  const [top, bottom] = [box.top + pad.top - UI_GAP, box.bottom - pad.bottom + UI_GAP]
+  const shown: DOMRect[] = []
+  for (const mk of markers) {
+    const el = mk.getElement()
+    el.style.visibility = 'visible'
+    const r = el.getBoundingClientRect()
+    const overlaps = shown.some(
+      (o) => r.left < o.right + 2 && o.left < r.right + 2 && r.top < o.bottom + 2 && o.top < r.bottom + 2,
+    )
+    if (overlaps || r.top < top || r.bottom > bottom) el.style.visibility = 'hidden'
+    else shown.push(r)
+  }
 }
 
 /** The Feuerwehrmagazin: a red dot with a white flame, as the one fixed point of reference. */
@@ -313,9 +363,11 @@ function stationElement(): HTMLElement {
   return el
 }
 
-function badge(text: string, color: string): HTMLElement {
+function badge({ text, color, pin }: Label): HTMLElement {
   const el = document.createElement('div')
-  el.className = 'rounded-md px-1.5 py-0.5 text-xs font-bold text-white shadow pointer-events-none'
+  el.className = pin
+    ? 'pointer-events-none grid size-6 place-items-center rounded-full text-xs font-extrabold text-white shadow ring-2 ring-white'
+    : 'pointer-events-none rounded-md px-1.5 py-0.5 text-xs font-bold whitespace-nowrap text-white shadow'
   el.style.background = color
   el.textContent = text
   return el

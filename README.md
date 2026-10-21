@@ -3,12 +3,17 @@
 Web app for Feuerwehr Oberwil drivers to learn the streets of Oberwil BL – phone layout plus a
 sidebar layout on desktop (≥ 1024 px).
 
-Practice happens in rounds of 10 questions, then a summary with the misses:
+The app opens on a start screen: what's due, mode, options and progress. Practice happens in rounds
+of 10 questions; new streets are first shown a few at a time (all on one map), then asked. Right
+answers move on by themselves, the result of a wrong one shows in the question card. The round ends
+with the misses, numbered on the map, and «Fehler nochmal üben».
 
-- **Strasse finden**: a street or named area is given, tap it on the map.
+- **Strasse finden**: a street or named area is given, tap it on the map, then «Prüfen».
 - **Strasse benennen**: one street is highlighted, pick its name from four nearby streets.
 - **Hausnummern** (switch, off by default): adds questions like «Hohestrasse – wo liegt Nr. 150–189?»
   for long streets (> 500 m); tap the right section. After answering, all sections show in colour.
+
+Phones in landscape and screens ≥ 1024 px get a sidebar next to the map.
 
 The map is swisstopo's light base map (buildings, forest, water) with every label removed. Progress
 is stored per device in `localStorage` (spaced repetition, Leitner boxes) and decides which questions

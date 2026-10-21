@@ -1,4 +1,4 @@
-import type { Geometry, LineString, MultiLineString } from 'geojson'
+import type { Geometry, LineString, MultiLineString, Position } from 'geojson'
 
 // Shape of src/data/oberwil.json, written by data/build.py.
 export type LngLat = [lng: number, lat: number]
@@ -51,9 +51,20 @@ export function neighbours(item: Item, items: Item[], n: number): Item[] {
     .slice(0, n)
 }
 
-/** Box around all streets – the overview, without far-out named areas. */
-export function streetsBBox(items: Item[]): BBox {
-  return items.filter((i) => i.kind === 'street').reduce<BBox>((acc, i) => union(acc, i.bbox), [180, 90, -180, -90])
+/**
+ * The town at a glance: the box around the middle 90 % of street centres. Leaves out far-out
+ * streets and named areas, so the start view is zoomed in enough to tap most streets directly.
+ */
+export function coreBBox(items: Item[]): BBox {
+  const centres = items.filter((i) => i.kind === 'street').map((i) => i.center)
+  const band = (axis: 0 | 1) => {
+    const sorted = centres.map((c) => c[axis]).toSorted((a, b) => a - b)
+    const at = (p: number) => sorted[Math.round(p * (sorted.length - 1))]!
+    return [at(0.05), at(0.95)] as const
+  }
+  const [w, e] = band(0)
+  const [s, n] = band(1)
+  return [w, s, e, n]
 }
 
 /** Grows a bbox to also cover `other`. */
@@ -62,3 +73,29 @@ export function union(a: BBox, b: BBox): BBox {
 }
 
 export const sectionLabel = (s: Section) => `${s.from}–${s.to}`
+
+/** Shortest distance between two items in metres (vertex to segment, good enough at town scale). */
+export function distanceM(a: Item, b: Item): number {
+  const lat0 = (a.center[1] * Math.PI) / 180
+  const toXY = ([lng, lat]: Position): XY => ({ x: lng! * 111_320 * Math.cos(lat0), y: lat! * 110_540 })
+  const lines = (g: Geometry): XY[][] => {
+    if (g.type === 'LineString') return [g.coordinates.map(toXY)]
+    if (g.type === 'MultiLineString' || g.type === 'Polygon') return g.coordinates.map((l) => l.map(toXY))
+    if (g.type === 'MultiPolygon') return g.coordinates.flat().map((l) => l.map(toXY))
+    return []
+  }
+  const [la, lb] = [lines(a.geometry), lines(b.geometry)]
+  const oneWay = (from: XY[][], to: XY[][]) =>
+    Math.min(...from.flat().flatMap((p) => to.flatMap((l) => l.slice(1).map((q, i) => segmentDistance(p, l[i]!, q)))))
+  return Math.min(oneWay(la, lb), oneWay(lb, la))
+}
+
+export type XY = { x: number; y: number }
+
+/** Distance from point `p` to the segment a–b. */
+export function segmentDistance(p: XY, a: XY, b: XY): number {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const t = dx || dy ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy))) : 0
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy))
+}

@@ -19,6 +19,7 @@ async function freshPage() {
   })
   const page = await context.newPage()
   await page.goto(URL)
+  await page.getByRole('button', { name: /Runde starten/ }).tap()
   await page.waitForFunction(() => window.townMap?.loaded() && window.townMap.getLayer('items-hit'))
   await page.waitForTimeout(1200) // let the initial fit animation settle
   // a point on the street that is asked, so a tap there would answer
@@ -30,7 +31,7 @@ async function freshPage() {
     const r = m.getCanvas().getBoundingClientRect()
     return { x: r.left + p.x, y: r.top + p.y }
   })
-  const answered = () => page.evaluate(() => /Richtig|Falsch/.test(document.querySelector('main').innerText))
+  const answered = () => page.evaluate(() => /Richtig|Daneben/.test(document.querySelector('main').innerText))
   const selected = () => page.getByRole('button', { name: /Prüfen/ }).isVisible()
   const zoom = () => page.evaluate(() => window.townMap.getZoom())
   return { context, page, point, answered, selected, zoom }
