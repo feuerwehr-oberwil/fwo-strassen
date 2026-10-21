@@ -17,55 +17,48 @@ export function review(card: Card | undefined, correct: boolean, now: number): C
   return { box, due: now + INTERVALS[box]! }
 }
 
-/**
- * Next key to ask: the most overdue card first, then a new key (in the given order),
- * then the card that is due soonest. Never repeats `last` if anything else is left.
- */
-export function pickNext(keys: string[], cards: Cards, now: number, last?: string): string | undefined {
-  const pool = keys.length > 1 ? keys.filter((k) => k !== last) : keys
-  const seen = pool.filter((k) => cards[k])
-  const due = seen.filter((k) => cards[k]!.due <= now)
-  if (due.length) return due.toSorted((a, b) => cards[a]!.box - cards[b]!.box || cards[a]!.due - cards[b]!.due)[0]
-  const fresh = pool.find((k) => !cards[k])
-  if (fresh) return fresh
-  return seen.toSorted((a, b) => cards[a]!.due - cards[b]!.due)[0]
-}
-
 export const learnedCount = (keys: string[], cards: Cards) =>
   keys.filter((k) => (cards[k]?.box ?? 0) >= LEARNED_BOX).length
 
-type Stored = { cards: Cards; day: string; today: number }
-const STORAGE_KEY = 'fwo-strassen:v1'
-const dayOf = (now: number) => new Date(now).toLocaleDateString('sv') // YYYY-MM-DD, local time
-
-function load(): Stored {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as Stored
-  } catch {
-    // corrupt or blocked storage: start fresh
-  }
-  return { cards: {}, day: dayOf(Date.now()), today: 0 }
+/** useState that survives reloads, stored as JSON under `key` in localStorage. */
+export function useStoredState<T>(key: string, initial: T) {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const raw = localStorage.getItem(key)
+      if (raw) return JSON.parse(raw) as T
+    } catch {
+      // corrupt or blocked storage: start fresh
+    }
+    return initial
+  })
+  useEffect(() => localStorage.setItem(key, JSON.stringify(value)), [key, value])
+  return [value, setValue] as const
 }
 
-/** Progress for this device, persisted in localStorage. `today` = answers given today. */
-export function useProgress() {
-  const [state, setState] = useState(load)
-  const [openedOn] = useState(() => dayOf(Date.now()))
-  useEffect(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(state)), [state])
+const dayOf = (now: number) => new Date(now).toLocaleDateString('sv') // YYYY-MM-DD, local time
 
-  const record = useCallback((key: string, correct: boolean) => {
-    const now = Date.now()
-    setState((s) => {
-      const day = dayOf(now)
-      return {
-        cards: { ...s.cards, [key]: review(s.cards[key], correct, now) },
-        day,
-        today: (s.day === day ? s.today : 0) + 1,
-      }
-    })
-  }, [])
+/** Progress for this device. `today` = answers given today. */
+export function useProgress() {
+  const [state, setState] = useStoredState('fwo-strassen:v1', { cards: {} as Cards, day: '', today: 0 })
+  const [openedOn] = useState(() => dayOf(Date.now()))
+
+  const record = useCallback(
+    (key: string, correct: boolean) => {
+      const now = Date.now()
+      setState((s) => {
+        const day = dayOf(now)
+        return {
+          cards: { ...s.cards, [key]: review(s.cards[key], correct, now) },
+          day,
+          today: (s.day === day ? s.today : 0) + 1,
+        }
+      })
+    },
+    [setState],
+  )
 
   const today = state.day === openedOn ? state.today : 0
   return { cards: state.cards, today, record }
 }
+
+export type Progress = ReturnType<typeof useProgress>

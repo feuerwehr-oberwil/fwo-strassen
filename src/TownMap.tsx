@@ -22,8 +22,9 @@ export type TownMapProps = {
   /** Items to colour, e.g. the asked street in orange. */
   highlights: { id: string; tone: Tone }[]
   overlays?: Overlay[]
-  /** The map fits this box whenever it (or `refitKey`) changes. */
+  /** The map fits this box whenever it (or `refitKey`) changes, keeping `padding` px free for UI. */
   fit: BBox
+  padding: Padding
   refitKey?: string
   /** What a tap selects. Taps are ignored when no handler is given. */
   onPickItem?: (id: string) => void
@@ -36,7 +37,7 @@ setWorkerUrl(workerUrl)
 // swisstopo base map (buildings, forest, water) with every label layer removed, so the
 // map never gives away a street name.
 const BASE_STYLE = 'https://vectortiles.geo.admin.ch/styles/ch.swisstopo.lightbasemap.vt/style.json'
-const PADDING = { top: 150, bottom: 30, left: 24, right: 24 }
+export type Padding = { top: number; bottom: number; left: number; right: number }
 const TAP_RADIUS = 18 // px
 const NO_OVERLAYS: Overlay[] = []
 
@@ -51,6 +52,7 @@ export function TownMap({
   highlights,
   overlays = NO_OVERLAYS,
   fit,
+  padding,
   refitKey,
   onPickItem,
   onPickOverlay,
@@ -69,7 +71,6 @@ export function TownMap({
     const m = new MapLibre({
       container: container.current!,
       bounds: [w, s, e, n],
-      fitBoundsOptions: { padding: PADDING },
       maxBounds: [w - 0.03, s - 0.02, e + 0.03, n + 0.02],
       minZoom: 12,
       maxZoom: 18,
@@ -138,7 +139,9 @@ export function TownMap({
   // Fit the requested box.
   const [w, s, e, n] = fit
   useEffect(() => {
-    map.current?.fitBounds([w, s, e, n], { padding: PADDING, maxZoom: 16.5, duration: 600 })
+    map.current?.fitBounds([w, s, e, n], { padding, maxZoom: 16.5, duration: 600 })
+    // padding is a fresh object each render; only refit when the box or refitKey changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refitKey, w, s, e, n])
 
   // maplibre sets `position: relative` on the container, so it sits inside an absolute wrapper

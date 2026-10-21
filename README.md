@@ -1,14 +1,18 @@
 # Strassen-Trainer Oberwil
 
-Phone-first web app for Feuerwehr Oberwil drivers to learn the streets of Oberwil BL.
+Web app for Feuerwehr Oberwil drivers to learn the streets of Oberwil BL – phone layout plus a
+sidebar layout on desktop (≥ 1024 px).
 
-- **Name → Karte**: a street or named area is given, tap it on the map.
-- **Karte → Name**: one street is highlighted, pick its name from four nearby streets.
-- **Hausnummern**: long streets (> 500 m) split into house-number sections. Learn them in colour, then
-  get asked «Hohestrasse 150–189 – which section?».
+Practice happens in rounds of 10 questions, then a summary with the misses:
+
+- **Strasse finden**: a street or named area is given, tap it on the map.
+- **Strasse benennen**: one street is highlighted, pick its name from four nearby streets.
+- **Hausnummern** (switch, off by default): adds questions like «Hohestrasse – wo liegt Nr. 150–189?»
+  for long streets (> 500 m); tap the right section. After answering, all sections show in colour.
 
 The map is swisstopo's light base map (buildings, forest, water) with every label removed. Progress
-is stored per device in `localStorage` (spaced repetition, Leitner boxes). No backend, no login.
+is stored per device in `localStorage` (spaced repetition, Leitner boxes) and decides which questions
+a round asks. No backend, no login.
 
 ## Development
 
