@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Cards } from './progress'
-import { pickRound } from './round'
+import { pickRound, toggleSections } from './round'
 
 const streets = (n: number) => Array.from({ length: n }, (_, i) => `find:s${i}`)
 
@@ -40,5 +40,23 @@ describe('pickRound', () => {
   it('drops the caps when the round cannot be filled otherwise', () => {
     const keys = ['find:a', 'nr:a:0', 'nr:a:1', 'nr:a:2']
     expect(pickRound(keys, {}, 0, 4)).toHaveLength(4)
+  })
+})
+
+describe('toggleSections', () => {
+  const pool = ['find:a', 'nr:a:0', 'nr:a:1', 'find:b', 'nr:b:0', ...streets(10)]
+
+  it('swaps a few open street questions for sections, keeping the one on screen', () => {
+    const open = ['find:s0', 'find:s1', 'find:s2', 'find:s3', 'find:s4']
+    const out = toggleSections(open, new Set(open), pool, true, {}, 0)
+    expect(out[0]).toBe('find:s0')
+    expect(out.filter((k) => k.startsWith('nr:'))).toEqual(['nr:a:0', 'nr:a:1'])
+    expect(out).toHaveLength(5)
+  })
+
+  it('replaces every open section question with an unused street', () => {
+    const open = ['nr:a:0', 'find:s0', 'nr:b:0']
+    const used = new Set(['find:a', ...open])
+    expect(toggleSections(open, used, streets(3), false, {}, 0)).toEqual(['find:s1', 'find:s0', 'find:s2'])
   })
 })

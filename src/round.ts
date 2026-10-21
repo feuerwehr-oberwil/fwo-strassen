@@ -60,6 +60,43 @@ export function pickRound(keys: string[], cards: Cards, now: number, size = ROUN
   return picked
 }
 
+/**
+ * Flips house numbers on or off for the still-open questions of a running round, so the
+ * switch only swaps a few questions instead of reshuffling everything.
+ * On: up to the section cap, street questions are replaced by section questions; the first
+ * open question (the one on screen) stays. Off: every open section question becomes a street
+ * question. `pool` holds the keys for the new setting, `used` all keys already in the round.
+ */
+export function toggleSections(
+  open: string[],
+  used: Set<string>,
+  pool: string[],
+  withNumbers: boolean,
+  cards: Cards,
+  now: number,
+): string[] {
+  const isSection = (k: string) => k.startsWith('nr:')
+  const fresh = (match: (k: string) => boolean, n: number) =>
+    pickRound(
+      pool.filter((k) => match(k) && !used.has(k)),
+      cards,
+      now,
+      n,
+    )
+  if (!withNumbers) {
+    const streets = fresh((k) => !isSection(k), open.filter(isSection).length)
+    return open.map((k) => (isSection(k) ? (streets.shift() ?? k) : k))
+  }
+  const slots = open.flatMap((k, i) => (i > 0 && !isSection(k) ? [i] : []))
+  const wanted = Math.min(MAX_SECTIONS, Math.round(open.length * 0.4)) - open.filter(isSection).length
+  const sections = fresh(isSection, Math.max(0, wanted))
+  // spread the new section questions evenly over the open street questions
+  const step = slots.length / (sections.length || 1)
+  const out = [...open]
+  sections.forEach((k, j) => (out[slots[Math.floor(j * step)]!] = k))
+  return out
+}
+
 /** Turns a key into a question; "name" questions get three nearby items as wrong answers. */
 export function makeQuestion(key: string, items: Item[]): Question {
   const [kind, id, section] = key.split(':')
