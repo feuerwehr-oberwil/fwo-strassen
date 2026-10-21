@@ -12,9 +12,9 @@ import { useMediaQuery } from './useMediaQuery'
 import { useRound, type RoundApi } from './useRound'
 
 const MODES = [
-  { value: 'find', label: 'Strasse finden', hint: 'Name → Karte' },
-  { value: 'name', label: 'Strasse benennen', hint: 'Karte → Name' },
-] as const satisfies readonly { value: Mode; label: string; hint: string }[]
+  { value: 'find', label: 'Strasse finden', short: 'Finden', hint: 'Name → Karte' },
+  { value: 'name', label: 'Strasse benennen', short: 'Benennen', hint: 'Karte → Name' },
+] as const satisfies readonly { value: Mode; label: string; short: string; hint: string }[]
 
 // Loaded once at startup (kept out of town.ts so tests can import it without a fetch).
 const townPromise: Promise<Town> = fetch(`${import.meta.env.BASE_URL}oberwil.json`).then(
@@ -121,7 +121,7 @@ function Trainer() {
         <div className="pointer-events-none absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] flex flex-col gap-2 *:pointer-events-auto">
           <div className="flex items-center gap-2">
             <Segmented
-              options={MODES.map((m) => ({ value: m.value, label: m.label.replace('Strasse ', '') }))}
+              options={MODES.map((m) => ({ value: m.value, label: m.short }))}
               value={round.settings.mode}
               onChange={(mode) => round.configure({ mode })}
             />

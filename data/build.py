@@ -25,6 +25,7 @@ from shapely.ops import substring
 
 BFS_NR = 2771  # Oberwil (BL)
 LONG_STREET_M = 500  # streets longer than this get house-number sections
+STATION = ("Löchlimattstrasse", "1")  # Feuerwehrmagazin, the only marker on the map
 HERE = Path(__file__).parent
 CACHE = HERE / "cache"
 OUT = HERE.parent / "public" / "oberwil.json"
@@ -203,11 +204,13 @@ def main() -> None:
                     )
         items.append(item)
 
+    station = ad[(ad.STN_LABEL == STATION[0]) & (ad.ADR_NUMBER == STATION[1])].iloc[0]
     all_geoms = pd.concat([lines, areas])
     out = {
         "source": "© swisstopo – Amtliches Strassenverzeichnis, Amtliches Gebäudeadressverzeichnis",
         "bbox": bbox(all_geoms.union_all()),
         "items": items,
+        "station": lonlat(station.ADR_EASTING, station.ADR_NORTHING),
     }
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
     long = [i for i in items if i["sections"]]

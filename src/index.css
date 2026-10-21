@@ -12,4 +12,6 @@ body {
     -apple-system,
     sans-serif;
   -webkit-tap-highlight-color: transparent;
+  /* no page zoom on quick double taps on buttons; the map handles its own gestures */
+  touch-action: manipulation;
 }

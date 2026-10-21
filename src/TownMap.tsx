@@ -34,9 +34,11 @@ export type TownMapProps = {
 // maplibre can't find its worker once bundled; ship it as a plain asset instead.
 setWorkerUrl(workerUrl)
 
-// swisstopo base map (buildings, forest, water) with every label layer removed, so the
-// map never gives away a street name.
-const BASE_STYLE = 'https://vectortiles.geo.admin.ch/styles/ch.swisstopo.lightbasemap.vt/style.json'
+// swisstopo base map (buildings, forest, water) without labels, so the map never gives away a
+// street name. Trimmed to Oberwil by data/basemap.py and preloaded in index.html.
+const BASE_STYLE = `${import.meta.env.BASE_URL}basemap.json`
+/** A tap waits this long for a second tap: a double tap zooms in and must not answer. */
+const DOUBLE_TAP_MS = 250
 export type Padding = { top: number; bottom: number; left: number; right: number }
 const TAP_RADIUS = 18 // px
 const NO_OVERLAYS: Overlay[] = []
@@ -70,18 +72,20 @@ export function TownMap({
     const [w, s, e, n] = town.bbox
     const m = new MapLibre({
       container: container.current!,
+      style: BASE_STYLE,
       bounds: [w, s, e, n],
-      maxBounds: [w - 0.03, s - 0.02, e + 0.03, n + 0.02],
+      maxBounds: [w - 0.02, s - 0.02, e + 0.02, n + 0.02], // same area the base map has tiles for
       minZoom: 12,
       maxZoom: 18,
       dragRotate: false,
       pitchWithRotate: false,
       attributionControl: { compact: true },
+      // phones report 3× pixels; 2× looks the same here and renders much faster
+      pixelRatio: Math.min(window.devicePixelRatio, 2),
+      fadeDuration: 0,
     })
     m.touchZoomRotate.disableRotation()
-    m.setStyle(BASE_STYLE, {
-      transformStyle: (_prev, next) => ({ ...next, layers: next.layers.filter((l) => l.type !== 'symbol') }),
-    })
+    new Marker({ element: stationElement() }).setLngLat(town.station).addTo(m)
     map.current = m
     if (import.meta.env.DEV) Object.assign(window, { townMap: m }) // for poking at it in devtools
     ready.current = new Promise((resolve) =>
@@ -90,17 +94,25 @@ export function TownMap({
         resolve()
       }),
     )
-    m.on('click', (ev) => {
+    const pick = (point: { x: number; y: number }) => {
       const { onPickItem, onPickOverlay } = handlers.current
       if (onPickOverlay) {
-        const key = nearest(m, ev.point, ['overlay-hit'])?.properties.key
+        const key = nearest(m, point, ['overlay-hit'])?.properties.key
         if (typeof key === 'number') onPickOverlay(key)
       } else if (onPickItem) {
-        const id = nearest(m, ev.point, ['items-hit', 'areas-fill'])?.properties.id
+        const id = nearest(m, point, ['items-hit', 'areas-fill'])?.properties.id
         if (typeof id === 'string') onPickItem(id)
       }
+    }
+    let pendingTap: ReturnType<typeof setTimeout> | undefined
+    m.on('click', (ev) => {
+      clearTimeout(pendingTap)
+      // remember the spot on the ground, in case the map moves before the tap counts
+      pendingTap = setTimeout(() => pick(m.project(ev.lngLat)), DOUBLE_TAP_MS)
     })
+    m.on('dblclick', () => clearTimeout(pendingTap))
     return () => {
+      clearTimeout(pendingTap)
       m.remove()
     }
   }, [town])
@@ -271,6 +283,17 @@ function midpoint(g: Geometry): [number, number] {
   const longest = lines.reduce((a, b) => (b.length > a.length ? b : a), [])
   const [lng, lat] = longest[Math.floor(longest.length / 2)] ?? [0, 0]
   return [lng!, lat!]
+}
+
+/** The Feuerwehrmagazin: a red dot with a white flame, as the one fixed point of reference. */
+function stationElement(): HTMLElement {
+  const el = document.createElement('div')
+  el.title = 'Feuerwehrmagazin'
+  el.className =
+    'pointer-events-none grid size-7 place-items-center rounded-full bg-red-600 shadow-md ring-2 ring-white'
+  el.innerHTML =
+    '<svg viewBox="0 0 24 24" width="16" height="16" fill="white" aria-hidden="true"><path d="M12 2c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 1.5.8 2.5 2 3 0-3-1-5.5 1-8.5z"/></svg>'
+  return el
 }
 
 function badge(text: string, color: string): HTMLElement {

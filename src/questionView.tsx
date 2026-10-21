@@ -95,7 +95,7 @@ export function questionView({ round, overview, desktop }: Ctx): View {
             feedback(target, picked)
           ) : (
             <div className="text-sm text-stone-500">
-              {desktop ? 'Mausrad zoomt, ziehen verschiebt.' : 'Zoomen und verschieben mit zwei Fingern.'}
+              {desktop ? 'Mausrad zoomt, ziehen verschiebt.' : 'Doppeltippen oder zwei Finger zum Zoomen.'}
             </div>
           )}
           {next}

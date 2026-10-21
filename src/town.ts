@@ -29,6 +29,8 @@ export type Town = {
   source: string
   bbox: BBox
   items: Item[]
+  /** Feuerwehrmagazin, the only marker on the map. */
+  station: LngLat
 }
 
 /** Items in learning order: long streets first, named areas last. */
