@@ -1,0 +1,12 @@
+[project]
+name = "fwo-strassen-data"
+version = "0.1.0"
+description = "Builds public/oberwil.json from swisstopo open data"
+requires-python = ">=3.12"
+dependencies = ["geopandas", "pyogrio", "shapely", "pyproj", "pandas"]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.uv]
+package = false

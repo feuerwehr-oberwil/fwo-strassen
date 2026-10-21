@@ -1,0 +1,12 @@
+[
+  { "name": "Feuerwehrmagazin", "kind": "fire", "address": "Löchlimattstrasse 1" },
+  { "name": "Kirche St. Peter und Paul", "kind": "church", "lat": 47.513664, "lon": 7.553837 },
+  { "name": "Tram Zentrum", "kind": "tram", "lat": 47.514172, "lon": 7.558236 },
+  { "name": "Tram Hüslimatt", "kind": "tram", "lat": 47.506541, "lon": 7.555272 },
+  { "name": "Tram Stallen", "kind": "tram", "lat": 47.518925, "lon": 7.563312 },
+  { "name": "Schulhaus Thomasgarten", "kind": "school", "lat": 47.515247, "lon": 7.553558 },
+  { "name": "Schulhaus Hüslimatt", "kind": "school", "lat": 47.510254, "lon": 7.557348 },
+  { "name": "Schulhaus Wehrlin", "kind": "school", "lat": 47.514851, "lon": 7.556087 },
+  { "name": "Schulhaus Am Marbach", "kind": "school", "lat": 47.511047, "lon": 7.558271 },
+  { "name": "Gymnasium", "kind": "school", "lat": 47.523396, "lon": 7.548996 }
+]
