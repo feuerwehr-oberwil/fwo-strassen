@@ -6,6 +6,7 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   base: './',
   plugins: [react(), tailwindcss()],
-  // maplibre alone is ~1 MB; one chunk is fine for a single-screen app
-  build: { chunkSizeWarningLimit: 1500 },
+  // maplibre alone is ~1 MB, the town data and truck routes ~200 KB (routes gzip to ~5 KB);
+  // one chunk is fine for a single-screen app
+  build: { chunkSizeWarningLimit: 1700 },
 })

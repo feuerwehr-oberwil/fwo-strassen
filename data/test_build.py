@@ -1,6 +1,6 @@
 from shapely.geometry import LineString, Point
 
-from build import house_number, number_ranges, section_count, section_geometries
+from build import house_number, number_ranges, numbering_ends, section_count, section_geometries
 
 
 def test_house_number_parses_suffixes():
@@ -34,3 +34,17 @@ def test_sections_follow_address_order_and_touch():
     a, b = section_geometries(line, [low, high])
     assert a.bounds[0] < b.bounds[0]
     assert abs(a.bounds[2] - b.bounds[0]) < 1  # neighbours meet halfway
+
+
+def test_numbering_ends_follow_the_numbers():
+    line = LineString([(0, 0), (300, 0)])
+    pts = [Point(x, 5) for x in (20, 90, 160, 230, 290)]
+    low, high = numbering_ends(line, pts, [9, 7, 5, 3, 1])  # numbers grow towards x = 0
+    assert (low.x, high.x) == (300, 0)
+
+
+def test_numbering_ends_skip_unclear_streets():
+    line = LineString([(0, 0), (300, 0)])
+    pts = [Point(x, 5) for x in (20, 90, 160, 230, 290)]
+    assert numbering_ends(line, pts, [1, 9, 3, 7, 5]) is None  # jumbled
+    assert numbering_ends(line, pts[:3], [1, 2, 3]) is None  # too few houses

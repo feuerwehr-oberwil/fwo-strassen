@@ -12,10 +12,10 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef, useState } from 'react'
 import basemap from './data/basemap.json'
-import { TONE_COLOR, type Tone } from './palette'
-import { segmentDistance, type BBox, type Town } from './town'
+import { ROUTE_COLOR, TONE_COLOR, TRUCK_COLOR, type Tone } from './palette'
+import { cutLine, segmentDistance, type BBox, type LngLat, type Town } from './town'
 
-/** Extra lines drawn on top (house-number sections), pickable by `key`. */
+/** Extra lines (house-number sections) or points (street ends) drawn on top, pickable by `key`. */
 export type Overlay = { key: number; geometry: Geometry; color: string }
 /** A badge on the map: a name above a line, or a round numbered `pin` on it. */
 export type Label = { text: string; color: string; at: Geometry; pin?: boolean }
@@ -32,6 +32,8 @@ export type TownMapProps = {
   /** Px to keep free for the UI around the map; measured at fit time, so it follows the layout. */
   padding: () => Padding
   refitKey?: string
+  /** The truck route from the Magazin: drawn dashed, then a truck dot drives it. */
+  route?: LngLat[]
   /** What a tap selects. Taps are ignored when no handler is given. */
   onPickItem?: (id: string) => void
   onPickOverlay?: (key: number) => void
@@ -51,6 +53,10 @@ const TAP_RADIUS = 18 // px
 export const UI_GAP = 16
 const NO_OVERLAYS: Overlay[] = []
 const NO_LABELS: Label[] = []
+const OVERLAY_HIT = ['overlay-hit', 'overlay-points-hit']
+/** The truck starts once the map has begun moving, and drives the route in this long. */
+const ROUTE_DELAY_MS = 250
+const ROUTE_MS = 1200
 
 const collection = (features: Feature[]): FeatureCollection => ({ type: 'FeatureCollection', features })
 
@@ -66,6 +72,7 @@ export function TownMap({
   fit,
   padding,
   refitKey,
+  route,
   onPickItem,
   onPickOverlay,
 }: TownMapProps) {
@@ -75,10 +82,17 @@ export function TownMap({
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading')
   const lastPadding = useRef<Padding>({ top: 0, bottom: 0, left: 0, right: 0 })
   const markers = useRef<Marker[]>([])
-  const handlers = useRef({ onPickItem, onPickOverlay })
+  const live = useRef({ onPickItem, onPickOverlay, overlays })
+  /** What the mouse is over (`i:<id>` / `o:<key>`), so the hover outline only redraws on change. */
+  const hovered = useRef('')
   useEffect(() => {
-    handlers.current = { onPickItem, onPickOverlay }
-  }, [onPickItem, onPickOverlay])
+    live.current = { onPickItem, onPickOverlay, overlays }
+    // answered: nothing to pick any more, so drop the hover outline
+    if (!onPickItem && !onPickOverlay && map.current) {
+      hovered.current = ''
+      showHover(map.current, undefined)
+    }
+  }, [onPickItem, onPickOverlay, overlays])
 
   // Create the map once.
   useEffect(() => {
@@ -104,16 +118,37 @@ export function TownMap({
     ready.current = new Promise((resolve) =>
       m.once('load', () => {
         addTownLayers(m, town)
+        // mouse only (touch has no hover): outline what a click would pick
+        if (matchMedia('(hover: hover)').matches) {
+          m.on('mousemove', (ev) => hover(ev.point))
+          m.on('mouseout', () => hover(null))
+        }
         setStatus('ready')
         resolve()
       }),
     )
     // only matters before the first load; later tile hiccups just retry
     m.on('error', () => setStatus((s) => (s === 'loading' ? 'failed' : s)))
+    const byId = new Map(town.items.map((i) => [i.id, i]))
+    const hover = (point: { x: number; y: number } | null) => {
+      const { onPickItem, onPickOverlay, overlays } = live.current
+      let key = ''
+      let geometry: Geometry | undefined
+      if (point && onPickOverlay) {
+        const o = overlays.find((o) => o.key === nearest(m, point, OVERLAY_HIT)?.properties.key)
+        if (o) [key, geometry] = [`o:${o.key}`, o.geometry]
+      } else if (point && onPickItem) {
+        const item = byId.get(nearest(m, point, ['items-hit', 'areas-fill'])?.properties.id)
+        if (item) [key, geometry] = [`i:${item.id}`, item.geometry]
+      }
+      if (key === hovered.current) return
+      hovered.current = key
+      showHover(m, geometry)
+    }
     const pick = (point: { x: number; y: number }) => {
-      const { onPickItem, onPickOverlay } = handlers.current
+      const { onPickItem, onPickOverlay } = live.current
       if (onPickOverlay) {
-        const key = nearest(m, point, ['overlay-hit'])?.properties.key
+        const key = nearest(m, point, OVERLAY_HIT)?.properties.key
         if (typeof key === 'number') onPickOverlay(key)
       } else if (onPickItem) {
         const id = nearest(m, point, ['items-hit', 'areas-fill'])?.properties.id
@@ -180,6 +215,42 @@ export function TownMap({
     }
   }, [town, highlights, overlays, labels])
 
+  // The route: dashed in full, then the truck drives it and draws it solid behind itself.
+  useEffect(() => {
+    let frame = 0
+    let cancelled = false
+    void ready.current?.then(() => {
+      const m = map.current
+      if (!m || cancelled) return
+      const set = (id: string, features: Feature[]) => m.getSource<GeoJSONSource>(id)?.setData(collection(features))
+      const line = (coords: LngLat[]): Feature => ({
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: coords },
+        properties: {},
+      })
+      set('route-full', route ? [line(route)] : [])
+      if (!route) {
+        set('route', [])
+        set('truck', [])
+        return
+      }
+      const start = performance.now() + ROUTE_DELAY_MS
+      const still = matchMedia('(prefers-reduced-motion: reduce)').matches
+      const draw = (now: number) => {
+        const f = still ? 1 : Math.min(1, Math.max(0, (now - start) / ROUTE_MS))
+        const done = cutLine(route, f)
+        set('route', done.length > 1 ? [line(done)] : [])
+        set('truck', [{ type: 'Feature', geometry: { type: 'Point', coordinates: done.at(-1)! }, properties: {} }])
+        if (f < 1) frame = requestAnimationFrame(draw)
+      }
+      frame = requestAnimationFrame(draw)
+    })
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(frame)
+    }
+  }, [route])
+
   // Fit the requested box.
   const [w, s, e, n] = fit
   useEffect(() => {
@@ -217,6 +288,8 @@ function addTownLayers(m: MapLibre, town: Town) {
   m.addSource('areas', { type: 'geojson', data: features('area') })
   m.addSource('highlights', { type: 'geojson', data: collection([]) })
   m.addSource('overlays', { type: 'geojson', data: collection([]) })
+  m.addSource('hover', { type: 'geojson', data: collection([]) })
+  for (const id of ['route-full', 'route', 'truck']) m.addSource(id, { type: 'geojson', data: collection([]) })
 
   const width = (min: number, max: number): ExpressionSpecification => [
     'interpolate',
@@ -246,6 +319,28 @@ function addTownLayers(m: MapLibre, town: Town) {
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': '#78716c', 'line-width': width(1.2, 4), 'line-opacity': 0.55 },
   })
+  // a soft blue halo under the hovered street, area or section (selected lines draw on top)
+  m.addLayer({
+    id: 'hover-fill',
+    type: 'fill',
+    source: 'hover',
+    filter: ['==', ['geometry-type'], 'Polygon'],
+    paint: { 'fill-color': TONE_COLOR.select, 'fill-opacity': 0.12 },
+  })
+  m.addLayer({
+    id: 'hover-line',
+    type: 'line',
+    source: 'hover',
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': TONE_COLOR.select, 'line-width': width(11, 22), 'line-opacity': 0.4 },
+  })
+  m.addLayer({
+    id: 'hover-point',
+    type: 'circle',
+    source: 'hover',
+    filter: ['==', ['geometry-type'], 'Point'],
+    paint: { 'circle-color': TONE_COLOR.select, 'circle-radius': 20, 'circle-opacity': 0.3 },
+  })
   m.addLayer({
     id: 'items-hit',
     type: 'line',
@@ -274,18 +369,68 @@ function addTownLayers(m: MapLibre, town: Town) {
     filter: ['get', 'dashed'],
     paint: { 'line-color': ['get', 'color'], 'line-width': width(4, 9), 'line-dasharray': [1.2, 0.8] },
   })
+  const round = { 'line-cap': 'round', 'line-join': 'round' } as const
+  m.addLayer({
+    id: 'route-full',
+    type: 'line',
+    source: 'route-full',
+    layout: round,
+    paint: { 'line-color': ROUTE_COLOR, 'line-width': width(3, 6), 'line-opacity': 0.4, 'line-dasharray': [1, 1.5] },
+  })
+  m.addLayer({
+    id: 'route-casing',
+    type: 'line',
+    source: 'route',
+    layout: round,
+    paint: { 'line-color': '#fff', 'line-width': width(6, 11) },
+  })
+  m.addLayer({
+    id: 'route',
+    type: 'line',
+    source: 'route',
+    layout: round,
+    paint: { 'line-color': ROUTE_COLOR, 'line-width': width(3, 6) },
+  })
   m.addLayer({
     id: 'overlays-line',
     type: 'line',
     source: 'overlays',
-    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    filter: ['!=', ['geometry-type'], 'Point'],
+    layout: round,
     paint: { 'line-color': ['get', 'color'], 'line-width': width(5, 11) },
+  })
+  // street ends to tap: white discs ringed in the overlay colour
+  m.addLayer({
+    id: 'overlay-points',
+    type: 'circle',
+    source: 'overlays',
+    filter: ['==', ['geometry-type'], 'Point'],
+    paint: {
+      'circle-radius': 11,
+      'circle-color': '#fff',
+      'circle-stroke-color': ['get', 'color'],
+      'circle-stroke-width': 4,
+    },
   })
   m.addLayer({
     id: 'overlay-hit',
     type: 'line',
     source: 'overlays',
+    filter: ['!=', ['geometry-type'], 'Point'],
     paint: { 'line-color': '#000', 'line-width': 34, 'line-opacity': 0.01 },
+  })
+  m.addLayer({
+    id: 'overlay-points-hit',
+    type: 'circle',
+    source: 'overlays',
+    filter: ['==', ['geometry-type'], 'Point'],
+    paint: { 'circle-radius': 26, 'circle-color': '#000', 'circle-opacity': 0.01 },
+  })
+  m.addLayer({
+    id: 'truck',
+    type: 'circle',
+    source: 'truck',
+    paint: { 'circle-radius': 8, 'circle-color': TRUCK_COLOR, 'circle-stroke-color': '#fff', 'circle-stroke-width': 3 },
   })
 }
 
@@ -301,13 +446,18 @@ function nearest(m: MapLibre, p: { x: number; y: number }, layers: string[]): Ma
   let best: MapGeoJSONFeature | undefined
   let bestDist = Infinity
   for (const f of m.queryRenderedFeatures(box, { layers })) {
-    const d = f.layer.type === 'fill' ? TAP_RADIUS * 0.6 : lineDistance(m, p, f.geometry)
+    const d = f.layer.type === 'fill' ? TAP_RADIUS * 0.6 : geometryDistance(m, p, f.geometry)
     if (d < bestDist) [best, bestDist] = [f, d]
   }
   return best
 }
 
-function lineDistance(m: MapLibre, p: { x: number; y: number }, g: Geometry): number {
+/** Screen distance from `p` to a line or point. */
+function geometryDistance(m: MapLibre, p: { x: number; y: number }, g: Geometry): number {
+  if (g.type === 'Point') {
+    const q = m.project([g.coordinates[0]!, g.coordinates[1]!])
+    return Math.hypot(q.x - p.x, q.y - p.y)
+  }
   const lines: Position[][] =
     g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : []
   let best = Infinity
@@ -318,8 +468,9 @@ function lineDistance(m: MapLibre, p: { x: number; y: number }, g: Geometry): nu
   return best
 }
 
-/** Where a label goes: the middle vertex of the longest line, or the middle of an area's outline. */
+/** Where a label goes: on a point, the middle vertex of the longest line, or the middle of an area's outline. */
 function labelPoint(g: Geometry): [number, number] {
+  if (g.type === 'Point') return [g.coordinates[0]!, g.coordinates[1]!]
   if (g.type === 'Polygon' || g.type === 'MultiPolygon') {
     const ring = g.type === 'Polygon' ? g.coordinates[0]! : g.coordinates[0]![0]!
     const avg = (i: 0 | 1) => ring.reduce((sum, p) => sum + p[i]!, 0) / ring.length
@@ -330,6 +481,14 @@ function labelPoint(g: Geometry): [number, number] {
   const longest = lines.reduce((a, b) => (b.length > a.length ? b : a), [])
   const [lng, lat] = longest[Math.floor(longest.length / 2)] ?? [0, 0]
   return [lng!, lat!]
+}
+
+/** Draws the hover halo around `geometry` (none: clears it) with a pointer cursor to match. */
+function showHover(m: MapLibre, geometry: Geometry | undefined) {
+  m.getCanvas().style.cursor = geometry ? 'pointer' : ''
+  m.getSource<GeoJSONSource>('hover')?.setData(
+    collection(geometry ? [{ type: 'Feature', geometry, properties: {} }] : []),
+  )
 }
 
 /**

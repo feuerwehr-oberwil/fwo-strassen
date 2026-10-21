@@ -3,34 +3,41 @@ import { neighbours, type Item } from './town'
 
 // A round is 10 questions picked by spaced repetition, then a summary. Streets that are new to
 // the user are first introduced (a few at a time, shown with their names) and then asked.
-// Question keys: "find:<id>" / "name:<id>" for streets and named areas,
-// "nr:<id>:<section>" for house-number sections (shared by both modes), "intro:<id>,<id>,…" for intros.
+// Question keys: "find:<id>" / "name:<id>" for streets and named areas, "nr:<id>:<section>" for
+// house-number sections of long streets and "start:<id>" for where a shorter street's numbering
+// starts (both shared by the two modes), "intro:<id>,<id>,…" for intros.
 
 export type Mode = 'find' | 'name'
 
-/** One new street on an intro screen; `withSections` when the round also asks its house numbers. */
-export type IntroItem = { item: Item; withSections: boolean }
+/** One new street on an intro screen; `withNumbers` when the round also asks its house numbers. */
+export type IntroItem = { item: Item; withNumbers: boolean }
 
 export type Question =
   | { kind: 'intro'; key: string; items: IntroItem[] }
   | { kind: 'find'; key: string; item: Item }
   | { kind: 'name'; key: string; item: Item; options: Item[] }
   | { kind: 'section'; key: string; item: Item; section: number }
+  /** «Wo ist Nr. 1?»: tap the end of the street where the numbering starts (pick 0 = low end, 1 = high end). */
+  | { kind: 'start'; key: string; item: Item; ends: NonNullable<Item['ends']> }
 
 export const ROUND_SIZE = 10
-/** Caps so a round with house numbers still is mostly about streets. */
+/** Caps on house-number questions, so a round with house numbers still is mostly about streets. */
 const MAX_SECTIONS = 4
 const MAX_SECTIONS_PER_STREET = 2
 /** New streets are introduced in batches of at most this many. */
 export const INTRO_BATCH = 4
 
 /**
- * All question keys for a mode, in learning order: each item (long streets first),
- * followed by its house-number sections when `withNumbers` is on.
+ * All question keys for a mode, in learning order: each item (long streets first), followed by
+ * its house-number questions when `withNumbers` is on: the sections of a long street, or where a
+ * shorter street's numbering starts.
  */
 export function roundKeys(mode: Mode, items: Item[], withNumbers: boolean): string[] {
-  return items.flatMap((i) => [`${mode}:${i.id}`, ...(withNumbers ? i.sections.map((_, s) => `nr:${i.id}:${s}`) : [])])
+  return items.flatMap((i) => [`${mode}:${i.id}`, ...(withNumbers ? numberKeys(i) : [])])
 }
+
+const numberKeys = (i: Item) => (i.ends ? [`start:${i.id}`] : i.sections.map((_, s) => `nr:${i.id}:${s}`))
+const isNumberKey = (k: string) => k.startsWith('nr:') || k.startsWith('start:')
 
 /**
  * Picks the keys for one round: overdue cards first (lowest box, most overdue), then new
@@ -51,7 +58,7 @@ export function pickRound(keys: string[], cards: Cards, now: number, size = ROUN
   let sections = 0
   for (const k of candidates) {
     if (picked.length === size) break
-    if (k.startsWith('nr:')) {
+    if (isNumberKey(k)) {
       const street = k.split(':')[1]!
       const n = perStreet.get(street) ?? 0
       if (sections >= MAX_SECTIONS || n >= MAX_SECTIONS_PER_STREET) continue
@@ -89,21 +96,24 @@ export function planRound(picks: string[], cards: Cards, introduce: boolean): st
 
 /**
  * Turns a key into a question; "name" questions get three nearby items as wrong answers.
- * Intros come without sections; useRound switches them on for streets whose numbers are asked.
+ * Intros come without house numbers; useRound switches them on for streets whose numbers are asked.
  */
 export function makeQuestion(key: string, items: Item[]): Question {
   const [kind, id, section] = key.split(':')
   const byId = (id: string) => items.find((i) => i.id === id)!
   if (kind === 'intro')
-    return { kind: 'intro', key, items: id!.split(',').map((i) => ({ item: byId(i), withSections: false })) }
+    return { kind: 'intro', key, items: id!.split(',').map((i) => ({ item: byId(i), withNumbers: false })) }
   const item = byId(id!)
   if (kind === 'nr') return { kind: 'section', key, item, section: Number(section) }
+  if (kind === 'start' && item.ends) return { kind: 'start', key, item, ends: item.ends }
   if (kind === 'name') return { kind: 'name', key, item, options: shuffle([item, ...neighbours(item, items, 3)]) }
   return { kind: 'find', key, item }
 }
 
 export function isCorrect(q: Exclude<Question, { kind: 'intro' }>, pick: string | number): boolean {
-  return q.kind === 'section' ? pick === q.section : pick === q.item.id
+  if (q.kind === 'section') return pick === q.section
+  if (q.kind === 'start') return pick === 0
+  return pick === q.item.id
 }
 
 export function shuffle<T>(xs: T[]): T[] {

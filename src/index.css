@@ -15,3 +15,16 @@ body {
   /* no page zoom on quick double taps on buttons; the map handles its own gestures */
   touch-action: manipulation;
 }
+
+/* the «Weiter» button filling up until it presses itself (RoundParts Countdown) */
+@theme {
+  --animate-fill: fill linear forwards;
+  @keyframes fill {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+}

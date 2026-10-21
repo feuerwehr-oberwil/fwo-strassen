@@ -94,7 +94,9 @@ export function Home({
         <Switch checked={withNumbers} onChange={(withNumbers) => round.configure({ withNumbers })} wide>
           <span className="text-left">
             <span className="block text-sm font-semibold">Hausnummern</span>
-            <span className="block text-xs text-stone-500">Abschnitte langer Strassen mit abfragen</span>
+            <span className="block text-xs text-stone-500">
+              Abschnitte langer Strassen, bei kürzeren wo Nr. 1 liegt
+            </span>
           </span>
         </Switch>
         <Switch checked={intro} onChange={(intro) => round.configure({ intro })} wide>

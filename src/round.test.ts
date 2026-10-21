@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Cards } from './progress'
-import { INTRO_BATCH, pickRound, planRound } from './round'
+import { INTRO_BATCH, isCorrect, makeQuestion, pickRound, planRound, roundKeys } from './round'
+import type { Item } from './town'
 
 const streets = (n: number) => Array.from({ length: n }, (_, i) => `find:s${i}`)
 
@@ -68,5 +69,42 @@ describe('planRound', () => {
 
   it('asks everything straight away when introductions are off', () => {
     expect(planRound(['find:a', 'find:b'], {}, false).toSorted()).toEqual(['find:a', 'find:b'])
+  })
+})
+
+describe('house numbers', () => {
+  const item = (id: string, extra: Partial<Item>): Item => ({
+    id,
+    name: id,
+    kind: 'street',
+    lengthM: 100,
+    center: [0, 0],
+    bbox: [0, 0, 0, 0],
+    geometry: { type: 'LineString', coordinates: [] },
+    sections: [],
+    ...extra,
+  })
+  const long = item('long', {
+    sections: [{ from: 1, to: 9, crossStreets: [], geometry: { type: 'LineString', coordinates: [] } }],
+  })
+  const short = item('short', { ends: { from: 1, to: 42, low: [0, 0], high: [1, 1] } })
+  const plain = item('plain', {})
+
+  it('asks sections of long streets and where the numbering starts on shorter ones', () => {
+    expect(roundKeys('find', [long, short, plain], true)).toEqual([
+      'find:long',
+      'nr:long:0',
+      'find:short',
+      'start:short',
+      'find:plain',
+    ])
+    expect(roundKeys('find', [long, short, plain], false)).toEqual(['find:long', 'find:short', 'find:plain'])
+  })
+
+  it('counts the low end as the right answer to «Wo ist Nr. 1?»', () => {
+    const q = makeQuestion('start:short', [short])
+    expect(q.kind).toBe('start')
+    if (q.kind !== 'start') return
+    expect([isCorrect(q, 0), isCorrect(q, 1)]).toEqual([true, false])
   })
 })

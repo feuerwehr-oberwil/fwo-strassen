@@ -15,3 +15,6 @@ export const TONE_COLOR: Record<Tone, string> = {
 /** One colour per house-number section, in number order (dark enough for white label text). */
 export const SECTION_COLORS = ['#1d4ed8', '#15803d', '#b45309', '#be185d', '#6d28d9'] as const
 export const NEUTRAL = '#57534e'
+/** The truck route from the Magazin, and the truck driving it. */
+export const ROUTE_COLOR = '#1c1917'
+export const TRUCK_COLOR = '#dc2626'
