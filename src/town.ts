@@ -31,11 +31,6 @@ export type Town = {
   items: Item[]
 }
 
-// Loaded once at startup; read with React's `use(townPromise)`.
-export const townPromise: Promise<Town> = fetch(`${import.meta.env.BASE_URL}oberwil.json`).then(
-  (r) => r.json() as Promise<Town>,
-)
-
 /** Items in learning order: long streets first, named areas last. */
 export function byImportance(items: Item[]): Item[] {
   return items.toSorted((a, b) => (b.lengthM ?? -1) - (a.lengthM ?? -1) || a.name.localeCompare(b.name, 'de'))

@@ -2,7 +2,7 @@ import { Suspense, use, useEffect, useMemo, type ReactNode } from 'react'
 import { learnedCount, useProgress } from './progress'
 import { questionView, type MapView } from './questionView'
 import type { Mode } from './round'
-import { streetsBBox, townPromise } from './town'
+import { streetsBBox, type Town } from './town'
 import { TownMap, type Padding } from './TownMap'
 import { ProgressRow, RoundDots, Segmented, Switch } from './ui'
 import { useMediaQuery } from './useMediaQuery'
@@ -12,6 +12,11 @@ const MODES = [
   { value: 'find', label: 'Strasse finden', hint: 'Name → Karte' },
   { value: 'name', label: 'Strasse benennen', hint: 'Karte → Name' },
 ] as const satisfies readonly { value: Mode; label: string; hint: string }[]
+
+// Loaded once at startup (kept out of town.ts so tests can import it without a fetch).
+const townPromise: Promise<Town> = fetch(`${import.meta.env.BASE_URL}oberwil.json`).then(
+  (r) => r.json() as Promise<Town>,
+)
 
 const PHONE_PADDING: Padding = { top: 170, bottom: 24, left: 24, right: 24 }
 const DESKTOP_PADDING: Padding = { top: 48, bottom: 48, left: 48, right: 48 }
