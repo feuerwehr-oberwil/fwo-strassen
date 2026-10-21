@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import snailCheer from './assets/snail-cheer.webp'
+import snailMap from './assets/snail-map.webp'
 import { NEUTRAL, SECTION_COLORS, type Tone } from './palette'
 import type { Question } from './round'
 import { sectionLabel, union, type BBox, type Item } from './town'
@@ -145,6 +147,7 @@ function feedback(target: Item, picked: Item) {
 function summaryView(round: RoundApi, overview: BBox): View {
   const { questions, results } = round.round
   const wrong = questions.filter((_, i) => !results[i])
+  const score = results.filter(Boolean).length
   const label = (q: Question) =>
     q.kind === 'section' ? `${q.item.name} ${sectionLabel(q.item.sections[q.section]!)}` : q.item.name
   return {
@@ -153,12 +156,16 @@ function summaryView(round: RoundApi, overview: BBox): View {
       fit: overview,
     },
     prompt: (
-      <>
-        <div className="text-sm text-stone-500">Runde fertig</div>
-        <div className="text-2xl font-bold tracking-tight">
-          {results.filter(Boolean).length} / {questions.length} richtig
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <div className="text-sm text-stone-500">Runde fertig</div>
+          <div className="text-2xl font-bold tracking-tight">
+            {score} / {questions.length} richtig
+          </div>
         </div>
-      </>
+        {/* the snail cheers for a good round and keeps studying the map otherwise */}
+        <img src={score >= 7 ? snailCheer : snailMap} alt="" className="h-20 w-auto" />
+      </div>
     ),
     body: (
       <>

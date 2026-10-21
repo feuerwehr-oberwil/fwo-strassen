@@ -1,4 +1,5 @@
 import { Suspense, use, useEffect, useMemo, type ReactNode } from 'react'
+import snailMap from './assets/snail-map.webp'
 import { useBackup } from './backup'
 import { BackupPanel } from './BackupPanel'
 import { progressCounts, useProgress } from './progress'
@@ -68,9 +69,12 @@ function Trainer() {
     return (
       <main className="flex h-dvh text-stone-900">
         <aside className="flex w-[400px] shrink-0 flex-col border-r border-stone-200 bg-white">
-          <div className="px-6 pt-6 pb-4">
-            <div className="text-xs font-semibold tracking-wider text-red-600 uppercase">Feuerwehr Oberwil</div>
-            <div className="text-xl font-bold">Strassen-Trainer</div>
+          <div className="flex items-center gap-3 px-6 pt-5 pb-3">
+            <img src={snailMap} alt="" className="h-14 w-auto" />
+            <div>
+              <div className="text-xs font-semibold tracking-wider text-red-600 uppercase">Feuerwehr Oberwil</div>
+              <div className="text-xl font-bold">Strassen-Trainer</div>
+            </div>
           </div>
           <nav className="flex flex-col gap-0.5 px-3">
             {MODES.map((m) => (
