@@ -28,3 +28,7 @@ data/cache
 data/.venv
 __pycache__
 .pytest_cache
+
+# backup server
+server/.venv
+*.db

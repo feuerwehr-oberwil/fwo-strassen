@@ -24,6 +24,18 @@ pnpm lint && pnpm test && pnpm build
 
 Pushes to `main` deploy to GitHub Pages (`.github/workflows/deploy.yml`).
 
+## Progress backup
+
+`server/` is a tiny FastAPI service (SQLite on a volume) that stores each device's cards under an
+anonymous code like `rot-schnecke-4821`, so progress survives Safari's storage eviction and moves to
+a new phone. No accounts, no personal data. The app syncs only when it is built with
+`VITE_BACKUP_URL` set; otherwise the backup is off.
+
+```sh
+cd server && uv run --group dev pytest      # tests
+cd server && uv run uvicorn app:app --reload # local, then: VITE_BACKUP_URL=http://127.0.0.1:8000 pnpm dev
+```
+
 ## Data
 
 `public/oberwil.json` is generated and committed. To refresh it from swisstopo:

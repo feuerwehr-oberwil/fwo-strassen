@@ -96,19 +96,42 @@ export function RoundDots({ results, total }: { results: boolean[]; total: numbe
   )
 }
 
-export function ProgressRow({ today, learned, total }: { today: number; learned: number; total: number }) {
+/** Three-part bar: sicher (3× right in a row) · am Lernen (seen) · neu. */
+export function ProgressBar({
+  today,
+  solid,
+  learning,
+  fresh,
+}: {
+  today: number
+  solid: number
+  learning: number
+  fresh: number
+}) {
+  const total = solid + learning + fresh
+  const pct = (n: number) => `${(n / total) * 100}%`
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex justify-between text-xs text-stone-500">
-        <span>Heute {today} beantwortet</span>
-        <span>
-          Gelernt {learned} / {total}
-        </span>
+      <div className="flex h-2 overflow-hidden rounded-full bg-stone-200">
+        <div className="bg-green-600" style={{ width: pct(solid) }} />
+        <div className="bg-amber-400" style={{ width: pct(learning) }} />
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-stone-100">
-        <div className="h-full rounded-full bg-green-600" style={{ width: `${(learned / total) * 100}%` }} />
+      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-stone-500">
+        <Legend color="bg-green-600">{solid} sicher</Legend>
+        <Legend color="bg-amber-400">{learning} am Lernen</Legend>
+        <Legend color="bg-stone-300">{fresh} neu</Legend>
+        <span className="ml-auto">heute {today}</span>
       </div>
     </div>
+  )
+}
+
+function Legend({ color, children }: { color: string; children: ReactNode }) {
+  return (
+    <span className="flex items-center gap-1">
+      <span className={`size-2 rounded-full ${color}`} />
+      {children}
+    </span>
   )
 }
 

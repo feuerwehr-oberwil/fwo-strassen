@@ -1,10 +1,12 @@
 import { Suspense, use, useEffect, useMemo, type ReactNode } from 'react'
-import { learnedCount, useProgress } from './progress'
+import { useBackup } from './backup'
+import { BackupPanel } from './BackupPanel'
+import { progressCounts, useProgress } from './progress'
 import { questionView, type MapView } from './questionView'
 import type { Mode } from './round'
 import { streetsBBox, type Town } from './town'
 import { TownMap, type Padding } from './TownMap'
-import { ProgressRow, RoundDots, Segmented, Switch } from './ui'
+import { ProgressBar, RoundDots, Segmented, Switch } from './ui'
 import { useMediaQuery } from './useMediaQuery'
 import { useRound, type RoundApi } from './useRound'
 
@@ -34,6 +36,7 @@ export default function App() {
 function Trainer() {
   const town = use(townPromise)
   const progress = useProgress()
+  const backup = useBackup(progress)
   const round = useRound(town, progress)
   const desktop = useMediaQuery('(min-width: 1024px)')
   const overview = useMemo(() => streetsBBox(town.items), [town])
@@ -50,7 +53,10 @@ function Trainer() {
   )
   const dots = <RoundDots results={round.round.results} total={round.round.questions.length} />
   const learned = (
-    <ProgressRow today={progress.today} learned={learnedCount(round.keys, progress.cards)} total={round.keys.length} />
+    <div className="flex flex-col gap-3">
+      <ProgressBar today={progress.today} {...progressCounts(round.keys, progress.cards)} />
+      <BackupPanel backup={backup} />
+    </div>
   )
   const numbersSwitch = (label: ReactNode) => (
     <Switch checked={round.settings.withNumbers} onChange={(withNumbers) => round.configure({ withNumbers })}>
@@ -138,6 +144,7 @@ function useKeyboard(round: RoundApi) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const q = round.question
+      if (e.target instanceof HTMLInputElement) return // typing a backup code
       if (e.key === 'Enter') {
         e.preventDefault() // don't also "click" the focused button
         if (!q) round.restart()
