@@ -101,8 +101,10 @@ export function TownMap({
       container: container.current!,
       style: BASE_STYLE,
       bounds: [w, s, e, n],
-      maxBounds: [w - 0.02, s - 0.02, e + 0.02, n + 0.02], // same area the base map has tiles for
-      minZoom: 12,
+      // the base map has tiles for ±0.02°; the bounds are wider because they hold the whole
+      // canvas, and on a phone most of it sits under the question card and the bottom sheet
+      maxBounds: [w - 0.05, s - 0.05, e + 0.05, n + 0.05],
+      minZoom: 11.5,
       maxZoom: 18,
       dragRotate: false,
       pitchWithRotate: false,

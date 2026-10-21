@@ -8,7 +8,7 @@ of 10 questions; new streets are first shown a few at a time (all on one map), t
 answers move on by themselves after 2 s (the «Weiter» button fills up meanwhile), the result of a
 wrong one shows in the question card. After every answer a truck drives the route from the
 Feuerwehrmagazin to the street, so drivers learn the best way there. The round ends with the misses,
-numbered on the map, and «Fehler nochmal üben».
+numbered on the map, and «Fehler korrigieren».
 
 - **Strasse finden**: a street or named area is given, tap it on the map, then «Prüfen».
 - **Strasse benennen**: one street is highlighted, pick its name from four nearby streets.

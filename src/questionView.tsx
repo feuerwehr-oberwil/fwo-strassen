@@ -35,9 +35,10 @@ export function questionView(ctx: Ctx): View {
   if (!q) return summaryView(ctx)
   if (q.kind === 'intro') return introView(ctx, q)
   const { pick, selection } = round.round
-  // after answering: the truck route from the Magazin, and the map zoomed out to show it
+  // after answering: the truck route from the Magazin. With a route, the map shows only the route
+  // and `street`, as large as they fit, instead of `fit`
   const route = pick === null ? undefined : routes[routeKey(q)]
-  const withRoute = (fit: BBox) => (route ? union(fit, withMargin(bboxOf(route), 0.001)) : fit)
+  const withRoute = (fit: BBox, street: BBox) => (route ? withMargin(union(street, bboxOf(route)), 0.001) : fit)
   const isLast = round.round.index === round.round.questions.length - 1
   const action =
     pick !== null ? (
@@ -78,7 +79,7 @@ export function questionView(ctx: Ctx): View {
                 const mark = i === q.section ? '✓ ' : i === pick ? '✗ ' : ''
                 return { text: mark + sectionLabel(sec), color: SECTION_COLORS[i]!, at: sec.geometry }
               }),
-        fit: withRoute(q.item.bbox),
+        fit: withRoute(q.item.bbox, q.item.bbox),
         onPickOverlay: pick === null ? round.select : undefined,
         route,
       },
@@ -125,7 +126,7 @@ export function questionView(ctx: Ctx): View {
                   at: point(ends.high),
                 },
               ],
-        fit: withRoute(withMargin(item.bbox, 0.002)),
+        fit: withRoute(withMargin(item.bbox, 0.002), item.bbox),
         onPickOverlay: pick === null ? round.select : undefined,
         route,
       },
@@ -161,13 +162,8 @@ export function questionView(ctx: Ctx): View {
   else if (q.kind === 'name') highlights.push({ id: target.id, tone: 'target' })
   else if (typeof selection === 'string') highlights.push({ id: selection, tone: 'select' })
   const tone = picked ? (wrong ? 'bad' : 'ok') : undefined
-  const fit = withRoute(
-    wrong
-      ? withMargin(union(target.bbox, wrong.bbox))
-      : q.kind === 'name' || picked
-        ? withMargin(target.bbox)
-        : ctx.overview,
-  )
+  const shown = wrong ? union(target.bbox, wrong.bbox) : target.bbox
+  const fit = withRoute(q.kind === 'name' || picked ? withMargin(shown) : ctx.overview, shown)
   // with house numbers on, a shorter street shows where its numbering starts and ends
   const labels = picked && round.settings.withNumbers ? endLabels(target) : undefined
   const what = target.kind === 'area' ? 'das Gebiet' : 'die Strasse'
@@ -232,7 +228,8 @@ function introView({ round, desktop, focus, setFocus }: Ctx, q: Extract<Question
       highlights: q.items.map(({ item }) => ({ id: item.id, tone: 'target' })),
       overlays: sections.map((s, i) => ({ key: i, geometry: s.geometry, color: SECTION_COLORS[i]! })),
       labels,
-      fit: withMargin(focused ? focused.item.bbox : q.items.map((i) => i.item.bbox).reduce(union)),
+      // all streets at once get no margin: on a phone they barely fit between card and list
+      fit: focused ? withMargin(focused.item.bbox) : q.items.map((i) => i.item.bbox).reduce(union),
     },
     prompt: (
       <>
@@ -296,7 +293,7 @@ function summaryView({ round, overview, desktop, focus, setFocus }: Ctx): View {
     prompt: (
       <div className="flex items-center gap-3">
         <div className="flex-1">
-          <div className="text-sm text-stone-500">{practice ? 'Fehler geübt' : 'Runde fertig'}</div>
+          <div className="text-sm text-stone-500">{practice ? 'Fehler korrigiert' : 'Runde fertig'}</div>
           <div className="text-2xl font-bold tracking-tight">
             {score} / {asked.length} richtig
           </div>
@@ -337,7 +334,7 @@ function summaryView({ round, overview, desktop, focus, setFocus }: Ctx): View {
       <div className="flex flex-col gap-2">
         {misses.length > 0 ? (
           <Button tone="primary" onClick={round.practiceMisses} autoFocus={desktop}>
-            Fehler nochmal üben ({misses.length}) {desktop && <Kbd>Enter</Kbd>}
+            Fehler korrigieren ({misses.length}) {desktop && <Kbd>Enter</Kbd>}
           </Button>
         ) : (
           <Button tone="primary" onClick={round.start} autoFocus={desktop}>
@@ -379,6 +376,7 @@ const point = (coordinates: LngLat): Point => ({ type: 'Point', coordinates })
 
 const km = (m: number) => `${(m / 1000).toFixed(1).replace('.', ',')} km`
 
-function withMargin([w, s, e, n]: BBox, deg = 0.004): BBox {
+/** Room around a street so it shows in context (0.0025° ≈ 280 m; lng counts 1.5×, its degrees are shorter here). */
+function withMargin([w, s, e, n]: BBox, deg = 0.0025): BBox {
   return [w - deg * 1.5, s - deg, e + deg * 1.5, n + deg]
 }

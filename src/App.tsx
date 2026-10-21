@@ -172,7 +172,8 @@ export default function App() {
           <div ref={bottomUi} className="pointer-events-none absolute inset-x-0 bottom-0">
             {recentre('absolute -top-14 right-3')}
             {view.body ? (
-              <div className="pointer-events-auto flex max-h-[55dvh] flex-col gap-3 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_#0002]">
+              // a bit denser than elsewhere (list rows 36 px), so the map keeps more room
+              <div className="pointer-events-auto flex max-h-[55dvh] flex-col gap-2 overflow-y-auto rounded-t-2xl bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_#0002] [&_.min-h-11]:min-h-9">
                 {view.body}
                 {view.action}
                 {credit}
@@ -224,7 +225,7 @@ function QuestionCard({ view, round, quit }: { view: View; round: RoundApi; quit
 }
 
 /**
- * Keyboard (desktop): Enter = Runde starten / Prüfen / Weiter / Fehler üben, Esc = Runde beenden,
+ * Keyboard (desktop): Enter = Runde starten / Prüfen / Weiter / Fehler korrigieren, Esc = Runde beenden,
  * 1–4 = answer in «Benennen». Keys typed on a focused control keep their normal meaning.
  */
 function useKeyboard(round: RoundApi) {

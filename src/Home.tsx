@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Backup } from './backup'
 import { BackupPanel } from './BackupPanel'
+import { InstallHint } from './InstallHint'
 import { progressCounts, type Progress } from './progress'
 import type { Mode } from './round'
 import { Button, Kbd, ProgressBar, Switch } from './ui'
@@ -22,7 +23,7 @@ export const MODES = [
 ] as const satisfies readonly { value: Mode; label: string; hint: string; icon: string }[]
 
 /**
- * Start screen: what the next round brings, the «Runde starten» button, mode and options, and the
+ * Start screen: in iOS Safari a tip to install the app, what the next round brings, the «Runde starten» button, mode and options, and the
  * progress for the chosen mode. Settings live only here, so a round never changes under you.
  */
 export function Home({
@@ -50,6 +51,7 @@ export function Home({
 
   return (
     <div className="flex flex-col gap-4">
+      <InstallHint />
       <section className="rounded-2xl bg-white p-4 shadow-sm">
         <div className="text-sm text-stone-500">Nächste Runde</div>
         <div className="text-2xl font-bold tracking-tight">{headline}</div>
