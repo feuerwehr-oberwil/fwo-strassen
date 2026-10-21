@@ -45,6 +45,7 @@ export default function App() {
   const mapBox = useRef<HTMLDivElement>(null)
   const topUi = useRef<HTMLDivElement>(null)
   const bottomUi = useRef<HTMLDivElement>(null)
+  const recentreButton = useRef<HTMLButtonElement>(null)
   // keep the fitted box clear of the question card and the bottom sheet, whatever their height
   const padding = (): Padding => {
     const box = mapBox.current?.getBoundingClientRect()
@@ -53,7 +54,12 @@ export default function App() {
       return { top: p, bottom: p, left: p, right: p }
     }
     const top = (topUi.current?.getBoundingClientRect().bottom ?? box.top) - box.top + UI_GAP
-    const bottom = box.bottom - (bottomUi.current?.getBoundingClientRect().top ?? box.bottom) + UI_GAP
+    // the reset button floats above the sheet; keep it off the route's ends too
+    const sheetTop = Math.min(
+      bottomUi.current?.getBoundingClientRect().top ?? box.bottom,
+      recentreButton.current?.getBoundingClientRect().top ?? box.bottom,
+    )
+    const bottom = box.bottom - sheetTop + UI_GAP
     // a tall sheet (many misses) may cover part of the fit, but the map keeps at least MIN_MAP px
     return { top, bottom: Math.min(bottom, box.height - top - MIN_MAP), left: UI_GAP, right: UI_GAP }
   }
@@ -70,6 +76,7 @@ export default function App() {
   )
   const recentre = (className: string) => (
     <button
+      ref={recentreButton}
       onClick={() => setRecentred((n) => n + 1)}
       aria-label="Karte zurücksetzen"
       title="Karte zurücksetzen"
@@ -108,15 +115,17 @@ export default function App() {
     </div>
   )
   const home = <Home round={round} progress={progress} backup={backup} desktop={wide} />
+  // map from swisstopo, truck routes from OpenStreetMap (data/routes.py)
   const credit = (
-    <a
-      href="https://www.swisstopo.admin.ch"
-      target="_blank"
-      rel="noreferrer"
-      className="pointer-events-auto self-end rounded bg-white/80 px-1 text-[10px] text-stone-500"
-    >
-      © swisstopo
-    </a>
+    <span className="pointer-events-auto self-end rounded bg-white/80 px-1 text-[10px] text-stone-500">
+      <a href="https://www.swisstopo.admin.ch" target="_blank" rel="noreferrer">
+        © swisstopo
+      </a>{' '}
+      ·{' '}
+      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+        © OpenStreetMap
+      </a>
+    </span>
   )
 
   if (side)

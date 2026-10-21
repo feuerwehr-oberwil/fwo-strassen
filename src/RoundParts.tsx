@@ -23,6 +23,17 @@ export function Verdict({ right, children }: { right: boolean; children: ReactNo
   )
 }
 
+/** Fills its button from left to right over `ms`, the time until the button presses itself. */
+export function Countdown({ ms }: { ms: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 origin-left animate-fill bg-white/25"
+      style={{ animationDuration: `${ms}ms` }}
+    />
+  )
+}
+
 /** A name with the line style it has on the map, so card and map read as one. */
 function LineRow({
   tone,

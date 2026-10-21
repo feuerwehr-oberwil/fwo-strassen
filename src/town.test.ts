@@ -1,6 +1,6 @@
 import type { Geometry } from 'geojson'
 import { describe, expect, it } from 'vitest'
-import { distanceM, type Item } from './town'
+import { cutLine, distanceM, type Item } from './town'
 
 const street = (geometry: Geometry): Item => ({
   id: 'x',
@@ -49,5 +49,30 @@ describe('distanceM', () => {
       ],
     })
     expect(distanceM(a, b)).toBe(0)
+  })
+})
+
+describe('cutLine', () => {
+  const line: [number, number][] = [
+    [0, 0],
+    [1, 0],
+    [1, 1],
+  ]
+
+  it('stops partway along the right segment', () => {
+    expect(cutLine(line, 0.25)).toEqual([
+      [0, 0],
+      [0.5, 0],
+    ])
+    expect(cutLine(line, 0.75)).toEqual([
+      [0, 0],
+      [1, 0],
+      [1, 0.5],
+    ])
+  })
+
+  it('gives the whole line at 1 and just the start at 0', () => {
+    expect(cutLine(line, 1)).toEqual(line)
+    expect(cutLine(line, 0)).toEqual([[0, 0]])
   })
 })

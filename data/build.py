@@ -25,6 +25,8 @@ from shapely.ops import substring
 
 BFS_NR = 2771  # Oberwil (BL)
 LONG_STREET_M = 500  # streets longer than this get house-number sections
+ENDS_MIN_ADDRESSES = 4  # shorter streets need this many addresses to tell where numbering starts
+ENDS_MIN_CORR = 0.8  # …and numbers that clearly grow from one end to the other (rank correlation)
 STATION = ("Löchlimattstrasse", "1")  # Feuerwehrmagazin, the only marker on the map
 HERE = Path(__file__).parent
 CACHE = HERE / "cache"
@@ -124,6 +126,24 @@ def section_geometries(street: BaseGeometry, points: list[list[Point]]) -> list[
     return [MultiLineString(p) for p in pieces]
 
 
+def numbering_ends(street: BaseGeometry, points: list[Point], numbers: list[int]) -> tuple[Point, Point] | None:
+    """Where a shorter street's house numbers start and end: (low end, high end) of its line.
+
+    None when that isn't clear: loops and branches (more than one line part), fewer than
+    ENDS_MIN_ADDRESSES addresses, or numbers that don't grow steadily along the line.
+    """
+    lines = parts(street)
+    if len(lines) > 1 or len(points) < ENDS_MIN_ADDRESSES:
+        return None
+    line = lines[0]
+    along = pd.Series([line.project(p) for p in points]).rank()
+    r = along.corr(pd.Series(numbers).rank())
+    if not abs(r) >= ENDS_MIN_CORR:  # also catches NaN (all at one spot)
+        return None
+    first, last = Point(line.coords[0]), Point(line.coords[-1])
+    return (first, last) if r > 0 else (last, first)
+
+
 def cross_streets(section: MultiLineString, own_id: int, lines: gpd.GeoSeries, names: dict[int, str]) -> list[str]:
     """Other streets meeting this section, in order along its longest piece."""
     main = max(section.geoms, key=lambda g: g.length)
@@ -190,8 +210,8 @@ def main() -> None:
             "geometry": wgs(geom),
             "sections": [],
         }
+        a = ad[(ad.STR_ESID == esid) & ad.n.notna()]
         if kind == "street" and geom.length > LONG_STREET_M:
-            a = ad[(ad.STR_ESID == esid) & ad.n.notna()]
             k = section_count(geom.length, len(a))
             if k:
                 ranges = number_ranges([int(n) for n in a.n], k)
@@ -202,6 +222,12 @@ def main() -> None:
                     item["sections"].append(
                         {"from": lo, "to": hi, "crossStreets": cross_streets(sec, esid, lines, names), "geometry": wgs(sec)}
                     )
+        if kind == "street" and not item["sections"]:
+            nums = [int(n) for n in a.n]
+            ends = numbering_ends(geom, [Point(x, y) for x, y in zip(a.ADR_EASTING, a.ADR_NORTHING)], nums)
+            if ends:
+                low, high = ends
+                item["ends"] = {"from": min(nums), "to": max(nums), "low": lonlat(low.x, low.y), "high": lonlat(high.x, high.y)}
         items.append(item)
 
     station = ad[(ad.STN_LABEL == STATION[0]) & (ad.ADR_NUMBER == STATION[1])].iloc[0]
@@ -214,7 +240,8 @@ def main() -> None:
     }
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
     long = [i for i in items if i["sections"]]
-    print(f"{len(items)} items ({sum(i['kind'] == 'area' for i in items)} areas), {len(long)} with sections → {OUT} ({OUT.stat().st_size // 1024} KB)")
+    ends = sum("ends" in i for i in items)
+    print(f"{len(items)} items ({sum(i['kind'] == 'area' for i in items)} areas), {len(long)} with sections, {ends} with numbering ends → {OUT} ({OUT.stat().st_size // 1024} KB)")
     for i in long:
         print(f"  {i['name']}: " + " | ".join(f"{s['from']}–{s['to']} {'/'.join(s['crossStreets'])}" for s in i["sections"]))
 

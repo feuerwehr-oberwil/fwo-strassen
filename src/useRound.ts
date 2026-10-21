@@ -9,7 +9,7 @@ const DEFAULTS: Settings = { mode: 'find', withNumbers: false, intro: true }
 /** An answer: the tapped item id, or the section index for house-number questions. */
 export type Pick = string | number
 /** A right answer moves on by itself after this long. */
-const AUTO_NEXT_MS = 1000
+export const AUTO_NEXT_MS = 2000
 
 /**
  * Steps of a round (intros and questions). `results` has one entry per finished step: right/wrong
@@ -45,10 +45,10 @@ export function useRound(town: Town, progress: Progress) {
   const toQuestions = (steps: string[]): Question[] =>
     steps.map((k) => {
       const q = makeQuestion(k, items)
-      // an intro shows a street's sections when the round also asks for them
+      // an intro shows a street's house numbers when the round also asks for them
       if (q.kind !== 'intro') return q
-      const asked = (id: string) => steps.some((s) => s.startsWith(`nr:${id}:`))
-      return { ...q, items: q.items.map((i) => ({ ...i, withSections: asked(i.item.id) })) }
+      const asked = (id: string) => steps.some((s) => s.startsWith(`nr:${id}:`) || s === `start:${id}`)
+      return { ...q, items: q.items.map((i) => ({ ...i, withNumbers: asked(i.item.id) })) }
     })
   const begin = (steps: string[], practice: boolean) =>
     setRound((r) => ({
