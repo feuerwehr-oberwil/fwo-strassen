@@ -1,5 +1,4 @@
 import type { Feature, FeatureCollection, Geometry, Position } from 'geojson'
-import { Church, createElement, Flame, School, TramFront, type IconNode } from 'lucide'
 import {
   Map as MapLibre,
   Marker,
@@ -13,7 +12,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef } from 'react'
 import { TONE_COLOR, type Tone } from './palette'
-import type { BBox, Landmark, Town } from './town'
+import type { BBox, Town } from './town'
 
 /** Extra lines drawn on top (house-number sections), pickable by `key`. */
 export type Overlay = { key: number; geometry: Geometry; color: string; label?: string }
@@ -37,12 +36,6 @@ setWorkerUrl(workerUrl)
 // swisstopo base map (buildings, forest, water) with every label layer removed, so the
 // map never gives away a street name.
 const BASE_STYLE = 'https://vectortiles.geo.admin.ch/styles/ch.swisstopo.lightbasemap.vt/style.json'
-const LANDMARK_ICON: Record<Landmark['kind'], { icon: IconNode; color: string }> = {
-  fire: { icon: Flame, color: '#dc2626' },
-  church: { icon: Church, color: '#57534e' },
-  tram: { icon: TramFront, color: '#2563eb' },
-  school: { icon: School, color: '#7c3aed' },
-}
 const PADDING = { top: 150, bottom: 30, left: 24, right: 24 }
 const TAP_RADIUS = 18 // px
 const NO_OVERLAYS: Overlay[] = []
@@ -96,9 +89,6 @@ export function TownMap({
         resolve()
       }),
     )
-    const markers = town.landmarks.map((lm) =>
-      new Marker({ element: landmarkElement(lm) }).setLngLat([lm.lon, lm.lat]).addTo(m),
-    )
     m.on('click', (ev) => {
       const { onPickItem, onPickOverlay } = handlers.current
       if (onPickOverlay) {
@@ -110,7 +100,6 @@ export function TownMap({
       }
     })
     return () => {
-      markers.forEach((mk) => mk.remove())
       m.remove()
     }
   }, [town])
@@ -279,15 +268,6 @@ function midpoint(g: Geometry): [number, number] {
   const longest = lines.reduce((a, b) => (b.length > a.length ? b : a), [])
   const [lng, lat] = longest[Math.floor(longest.length / 2)] ?? [0, 0]
   return [lng!, lat!]
-}
-
-function landmarkElement(lm: Landmark): HTMLElement {
-  const el = document.createElement('div')
-  const { icon, color } = LANDMARK_ICON[lm.kind]
-  el.className = 'grid size-6 place-items-center rounded-full bg-white shadow ring-1 ring-stone-300'
-  el.title = lm.name
-  el.append(createElement(icon, { width: 15, height: 15, stroke: color, 'stroke-width': 2.2 }))
-  return el
 }
 
 function badge(text: string, color: string): HTMLElement {

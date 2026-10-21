@@ -203,20 +203,11 @@ def main() -> None:
                     )
         items.append(item)
 
-    landmarks = []
-    for lm in json.loads((HERE / "landmarks.json").read_text()):
-        if "address" in lm:
-            street, number = lm.pop("address").rsplit(" ", 1)
-            row = ad[(ad.STN_LABEL == street) & (ad.ADR_NUMBER == number)].iloc[0]
-            lm["lon"], lm["lat"] = lonlat(row.ADR_EASTING, row.ADR_NORTHING)
-        landmarks.append(lm)
-
     all_geoms = pd.concat([lines, areas])
     out = {
         "source": "© swisstopo – Amtliches Strassenverzeichnis, Amtliches Gebäudeadressverzeichnis",
         "bbox": bbox(all_geoms.union_all()),
         "items": items,
-        "landmarks": landmarks,
     }
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
     long = [i for i in items if i["sections"]]

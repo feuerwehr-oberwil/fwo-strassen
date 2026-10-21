@@ -30,6 +30,4 @@ cd data && uv run pytest         # tests for the house-number sections
 ```
 
 Sources: swisstopo «Amtliches Strassenverzeichnis» and «Amtliches Gebäudeadressverzeichnis»
-(BFS-Nr. 2771). Landmarks are listed by hand in `data/landmarks.json` (schools from swisstopo
-swissNAMES3D, tram stops from opentransportdata.swiss, the church position from
-© OpenStreetMap contributors).
+(BFS-Nr. 2771).

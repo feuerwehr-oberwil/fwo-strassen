@@ -25,18 +25,10 @@ export type Item = {
   sections: Section[]
 }
 
-export type Landmark = {
-  name: string
-  kind: 'fire' | 'church' | 'tram' | 'school'
-  lat: number
-  lon: number
-}
-
 export type Town = {
   source: string
   bbox: BBox
   items: Item[]
-  landmarks: Landmark[]
 }
 
 // Loaded once at startup; read with React's `use(townPromise)`.
