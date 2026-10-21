@@ -38,8 +38,8 @@ setWorkerUrl(workerUrl)
 // swisstopo base map (buildings, forest, water) without labels, so the map never gives away a
 // street name. Trimmed to Oberwil by data/basemap.py and bundled, so no style request.
 const BASE_STYLE = basemap
-/** A tap waits this long for a second tap: a double tap zooms in and must not answer. */
-const DOUBLE_TAP_MS = 250
+/** A tap waits this long before it answers, so a double tap can zoom instead. */
+const DOUBLE_TAP_MS = 300
 export type Padding = { top: number; bottom: number; left: number; right: number }
 const TAP_RADIUS = 18 // px
 const NO_OVERLAYS: Overlay[] = []
@@ -111,7 +111,12 @@ export function TownMap({
       // remember the spot on the ground, in case the map moves before the tap counts
       pendingTap = setTimeout(() => pick(m.project(ev.lngLat)), DOUBLE_TAP_MS)
     })
-    m.on('dblclick', () => clearTimeout(pendingTap))
+    // On touch, a double tap emits one click and then only zoomstart (no second click, no
+    // dblclick), so any start of zooming or panning cancels the pending answer.
+    const cancelTap = () => clearTimeout(pendingTap)
+    m.on('dblclick', cancelTap)
+    m.on('zoomstart', cancelTap)
+    m.on('movestart', cancelTap)
     return () => {
       clearTimeout(pendingTap)
       m.remove()
