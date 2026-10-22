@@ -55,15 +55,19 @@ source, `fr.ts` and `en.ts` must match its shape, so a missing translation fails
 
 ## Progress backup
 
-`server/` is a tiny FastAPI service (SQLite on a volume) that stores each device's cards under an
+`server/` is a tiny Node service (Hono + built-in SQLite) that stores each device's cards under an
 anonymous code like `rot-schnecke-4821`, so progress survives Safari's storage eviction and moves to
 a new phone. No accounts, no personal data. The app syncs only when it is built with
 `VITE_BACKUP_URL` set; otherwise the backup is off.
 
 ```sh
-cd server && uv run --group dev pytest      # tests
-cd server && uv run uvicorn app:app --reload # local, then: VITE_BACKUP_URL=http://127.0.0.1:8000 pnpm dev
+pnpm test                                    # includes server/app.test.ts
+node server/main.ts                          # local on :8000, then: VITE_BACKUP_URL=http://127.0.0.1:8000 pnpm dev
 ```
+
+Oberwil runs it on Railway (project `fwo-strassen`, service `backup`): built from the repo root with
+`server/Dockerfile` (service variable `RAILWAY_DOCKERFILE_PATH`), SQLite on a volume at `/data`, app
+origins in `ALLOWED_ORIGINS`.
 
 ## Data
 

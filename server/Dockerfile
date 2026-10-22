@@ -1,9 +1,11 @@
-FROM python:3.12-slim
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+# The backup API (server/main.ts) for Railway. Build from the repo root:
+#   docker build -f server/Dockerfile .
+FROM node:22-slim
 WORKDIR /app
-COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev
-COPY app.py ./
+RUN corepack enable
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
+COPY server ./server
 # progress.db lives on a Railway volume mounted at /data
-ENV DB_PATH=/data/progress.db
-CMD ["sh", "-c", "uv run --no-dev uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}"]
+ENV DB_PATH=/data/progress.db NODE_NO_WARNINGS=1
+CMD ["node", "server/main.ts"]
