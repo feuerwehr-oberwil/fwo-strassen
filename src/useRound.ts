@@ -13,8 +13,9 @@ export type Pick = string | number
 export const AUTO_NEXT_MS = 2000
 
 /**
- * Steps of a round (intros and questions). `results` has one entry per finished step: right/wrong
- * for questions, null for intros. `selection` is a tap on the map that still needs «Prüfen».
+ * Steps of a round (intros and questions). `results` and `picks` have one entry per finished step:
+ * right/wrong and the answer for questions, null for intros; the summary shows them again.
+ * `selection` is a tap on the map that still needs «Prüfen».
  * `practice` = a round of the previous round's misses.
  */
 export type Round = {
@@ -22,6 +23,7 @@ export type Round = {
   questions: Question[]
   index: number
   results: (boolean | null)[]
+  picks: (Pick | null)[]
   selection: Pick | null
   pick: Pick | null
   practice: boolean
@@ -57,6 +59,7 @@ export function useRound(town: Town, progress: Progress) {
       questions: toQuestions(steps),
       index: 0,
       results: [],
+      picks: [],
       selection: null,
       pick: null,
       practice,
@@ -66,8 +69,10 @@ export function useRound(town: Town, progress: Progress) {
       const q = r?.questions[r.index]
       if (!r || (r.pick === null && q?.kind !== 'intro')) return r
       // questions already logged their result in answer(); an intro logs null
-      const results = q?.kind === 'intro' ? [...r.results, null] : r.results
-      return { ...r, index: r.index + 1, pick: null, selection: null, results }
+      const intro = q?.kind === 'intro'
+      const results = intro ? [...r.results, null] : r.results
+      const picks = intro ? [...r.picks, null] : r.picks
+      return { ...r, index: r.index + 1, pick: null, selection: null, results, picks }
     })
 
   // a right answer moves on by itself
@@ -84,7 +89,7 @@ export function useRound(town: Town, progress: Progress) {
     if (!round || !question || question.kind === 'intro' || round.pick !== null) return
     const correct = isCorrect(question, pick)
     progress.record(question.key, correct)
-    setRound({ ...round, pick, selection: null, results: [...round.results, correct] })
+    setRound({ ...round, pick, selection: null, results: [...round.results, correct], picks: [...round.picks, pick] })
   }
 
   return {
