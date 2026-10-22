@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { t } from './i18n'
 import { TONE_COLOR, type Tone } from './palette'
 import { distanceM, type Item } from './town'
@@ -65,7 +65,10 @@ function LineRow({
   )
 }
 
-/** Numbered rows matching the pins on the map; tapping one focuses it, tapping it again lets go. */
+/**
+ * Numbered rows matching the pins on the map; tapping one focuses it, tapping it again lets go. The
+ * focused row scrolls into view, so a street tapped on the map shows its row in a long list.
+ */
 export function ListRows({
   rows,
   focus,
@@ -75,11 +78,18 @@ export function ListRows({
   focus: number | null
   setFocus: (i: number | null) => void
 }) {
+  const buttons = useRef<(HTMLButtonElement | null)[]>([])
+  useEffect(() => {
+    if (focus !== null) buttons.current[focus]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [focus])
   return (
     <div className="flex flex-col">
       {rows.map((r, i) => (
         <button
           key={i}
+          ref={(el) => {
+            buttons.current[i] = el
+          }}
           onClick={() => setFocus(focus === i ? null : i)}
           aria-pressed={focus === i}
           className={`flex min-h-11 items-center gap-3 rounded-lg px-2 text-left ${focus === i ? 'bg-stone-100' : 'hover:bg-stone-50'}`}
