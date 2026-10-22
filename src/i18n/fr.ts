@@ -3,6 +3,10 @@ import type { Messages } from './de.ts'
 
 type Kind = Item['kind']
 const dec = (m: number) => (m / 1000).toFixed(1).replace('.', ',')
+/** How far off a wrong tap was: alone in the summary list, after «Raté» on the card. */
+const off = (m: number) =>
+  m < 50 ? 'de peu' : m < 1000 ? `à env. ${Math.round(m / 50) * 50} m` : `à env. ${dec(m)} km`
+
 /** «de Bâle», «d’Oberwil». */
 const of = (town: string) => (/^[aeiouyhàâéèêîïôû]/i.test(town) ? `d’${town}` : `de ${town}`)
 
@@ -54,8 +58,8 @@ export const fr = {
     next: 'Suivant',
     results: 'Résultat',
     right: 'Juste',
-    wrong: (m: number) =>
-      `Raté – ${m < 50 ? 'de peu' : m < 1000 ? `à env. ${Math.round(m / 50) * 50} m` : `à env. ${dec(m)} km`}`,
+    off,
+    wrong: (m: number) => `Raté – ${off(m)}`,
     target: 'à trouver',
     yourTap: 'ton choix',
     tap: (kind: Kind) => `Touche ${kind === 'area' ? 'le lieu-dit' : 'la rue'}`,
@@ -84,7 +88,7 @@ export const fr = {
     roundDone: 'Série terminée',
     score: (right: number, total: number) => `${right} / ${total} ${right > 1 ? 'justes' : 'juste'}`,
     missesBack: 'Les erreurs reviennent à la prochaine série.',
-    missesTitle: 'Tes erreurs – touche pour voir',
+    roundTitle: 'Ta série – touche pour voir',
     perfect: 'Tout juste – bravo !',
     fixMisses: (n: number) => `Corriger les erreurs (${n})`,
     newRound: 'Nouvelle série',

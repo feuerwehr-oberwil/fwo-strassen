@@ -56,8 +56,11 @@ function LineRow({
         className="h-1.5 w-5 shrink-0 rounded-full"
         style={{ background: dashed ? `repeating-linear-gradient(90deg, ${color} 0 5px, transparent 5px 8px)` : color }}
       />
-      <span className={big ? 'text-2xl font-bold tracking-tight' : 'font-semibold text-stone-700'}>{name}</span>
-      {note && <span className="text-xs text-stone-500">{note}</span>}
+      {/* the note flows after the name and wraps below it when a long name fills a small phone */}
+      <span className="min-w-0">
+        <span className={big ? 'text-2xl font-bold tracking-tight' : 'font-semibold text-stone-700'}>{name}</span>
+        {note && <span className="ml-2 inline-block text-xs text-stone-500">{note}</span>}
+      </span>
     </div>
   )
 }

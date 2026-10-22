@@ -29,6 +29,8 @@ export default function App({ data }: { data: TownData }) {
   const wide = useMediaQuery('(min-width: 1024px)')
   const landscape = useMediaQuery('(orientation: landscape) and (min-width: 568px)')
   const side = wide || landscape
+  // key hints and autofocus follow the input, not the width: none on an iPad, all in a narrow desktop window
+  const keyboard = useMediaQuery('(hover: hover) and (pointer: fine)')
 
   // the list row in focus on intro and summary screens; resets with every step
   const step = round.round ? `${round.round.id}:${round.round.index}` : 'home'
@@ -39,7 +41,7 @@ export default function App({ data }: { data: TownData }) {
 
   const view =
     round.round &&
-    questionView({ round: { ...round, round: round.round }, routes, overview, desktop: wide, focus, setFocus })
+    questionView({ round: { ...round, round: round.round }, routes, overview, keyboard, focus, setFocus })
   useKeyboard(round)
 
   const mapBox = useRef<HTMLDivElement>(null)
@@ -115,7 +117,7 @@ export default function App({ data }: { data: TownData }) {
       </div>
     </div>
   )
-  const home = <Home round={round} progress={progress} backup={backup} desktop={wide} />
+  const home = <Home round={round} progress={progress} backup={backup} keyboard={keyboard} />
   // map from swisstopo, truck routes from OpenStreetMap (pipeline/routes.ts)
   const credit = (
     <span className="pointer-events-auto self-end rounded bg-white/80 px-1 text-[10px] text-stone-500">
@@ -226,7 +228,7 @@ function QuestionCard({ view, round, quit }: { view: View; round: RoundApi; quit
 }
 
 /**
- * Keyboard (desktop): Enter = Runde starten / Prüfen / Weiter / Fehler korrigieren, Esc = Runde beenden,
+ * Keyboard: Enter = Runde starten / Prüfen / Weiter / Fehler korrigieren, Esc = Runde beenden,
  * 1–4 = answer in «Benennen». Keys typed on a focused control keep their normal meaning.
  */
 function useKeyboard(round: RoundApi) {

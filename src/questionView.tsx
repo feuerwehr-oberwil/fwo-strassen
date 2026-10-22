@@ -5,11 +5,21 @@ import snailMap from './assets/snail-map.webp'
 import { t } from './i18n'
 import { NEUTRAL, SECTION_COLORS, TONE_COLOR, type Tone } from './palette'
 import type { Question } from './round'
-import { bboxOf, sectionKey, sectionLabel, union, type BBox, type Item, type LngLat, type Routes } from './town'
+import {
+  bboxOf,
+  distanceM,
+  sectionKey,
+  sectionLabel,
+  union,
+  type BBox,
+  type Item,
+  type LngLat,
+  type Routes,
+} from './town'
 import { Countdown, ListRows, Result, Verdict } from './RoundParts'
 import type { Label, TownMapProps } from './TownMap'
 import { Button, Kbd } from './ui'
-import { AUTO_NEXT_MS, type Round, type RoundApi } from './useRound'
+import { AUTO_NEXT_MS, type Pick, type Round, type RoundApi } from './useRound'
 
 export type MapView = Omit<TownMapProps, 'town' | 'baseStyle' | 'padding' | 'refitKey'>
 /**
@@ -19,23 +29,35 @@ export type MapView = Omit<TownMapProps, 'town' | 'baseStyle' | 'padding' | 'ref
  */
 export type View = { map: MapView; prompt: ReactNode; tone?: 'ok' | 'bad'; body?: ReactNode; action?: ReactNode }
 
-/** `focus`: the list row tapped on an intro or summary screen, which the map zooms to. */
+/**
+ * `focus`: the list row tapped on an intro or summary screen, which the map zooms to. `keyboard`: a
+ * mouse is the main input, so buttons show their keys and the main one takes focus for Enter.
+ */
 type Ctx = {
   round: RoundApi & { round: Round }
   routes: Routes
   overview: BBox
-  desktop: boolean
+  keyboard: boolean
   focus: number | null
   setFocus: (i: number | null) => void
 }
 
+type Asked = Exclude<Question, { kind: 'intro' }>
+
 /** The screen for the current step (intro or question), or the summary once the round is done. */
 export function questionView(ctx: Ctx): View {
-  const { round, routes, desktop } = ctx
-  const q = round.question
+  const q = ctx.round.question
   if (!q) return summaryView(ctx)
   if (q.kind === 'intro') return introView(ctx, q)
-  const { pick, selection } = round.round
+  return askView(ctx, q, ctx.round.round.pick, ctx.round.round.selection)
+}
+
+/**
+ * A question before and after answering (`pick`). The summary shows a past question with its
+ * pick again; there only `map` and `prompt` are used.
+ */
+function askView(ctx: Ctx, q: Asked, pick: Pick | null, selection: Pick | null): View {
+  const { round, routes, keyboard } = ctx
   // after answering: the truck route from the Magazin. With a route, the map shows only the route
   // and `street`, as large as they fit, instead of `fit`
   const route = pick === null ? undefined : routes[routeKey(q)]
@@ -43,16 +65,16 @@ export function questionView(ctx: Ctx): View {
   const isLast = round.round.index === round.round.questions.length - 1
   const action =
     pick !== null ? (
-      <Button tone="primary" onClick={round.next} autoFocus={desktop}>
+      <Button tone="primary" onClick={round.next} autoFocus={keyboard}>
         {/* a right answer moves on by itself (useRound) */}
         {round.round.results.at(-1) && <Countdown ms={AUTO_NEXT_MS} />}
-        {isLast ? t.question.results : t.question.next} {desktop && <Kbd>Enter</Kbd>}
+        {isLast ? t.question.results : t.question.next} {keyboard && <Kbd>Enter</Kbd>}
       </Button>
     ) : (
       selection !== null && (
         // map questions: a tap only selects, «Prüfen» answers
-        <Button tone="primary" onClick={round.confirm} autoFocus={desktop}>
-          {t.question.check} {desktop && <Kbd>Enter</Kbd>}
+        <Button tone="primary" onClick={round.confirm} autoFocus={keyboard}>
+          {t.question.check} {keyboard && <Kbd>Enter</Kbd>}
         </Button>
       )
     )
@@ -194,7 +216,7 @@ export function questionView(ctx: Ctx): View {
       <div className="flex flex-col gap-2">
         {q.options.map((o, i) => (
           <Button key={o.id} onClick={() => round.answer(o.id)}>
-            {desktop && <Kbd>{i + 1}</Kbd>}
+            {keyboard && <Kbd>{i + 1}</Kbd>}
             {o.name}
           </Button>
         ))}
@@ -205,7 +227,7 @@ export function questionView(ctx: Ctx): View {
 }
 
 /** New streets of the round, all at once: numbered on the map and listed; a row zooms to its street. */
-function introView({ round, desktop, focus, setFocus }: Ctx, q: Extract<Question, { kind: 'intro' }>): View {
+function introView({ round, keyboard, focus, setFocus }: Ctx, q: Extract<Question, { kind: 'intro' }>): View {
   const focused = focus === null ? undefined : q.items[focus]
   const sections = focused?.withNumbers ? focused.item.sections : []
   const labels: Label[] = q.items.flatMap(({ item }, i) =>
@@ -250,104 +272,106 @@ function introView({ round, desktop, focus, setFocus }: Ctx, q: Extract<Question
       />
     ),
     action: (
-      <Button tone="primary" onClick={round.next} autoFocus={desktop}>
-        {t.intro.go} {desktop && <Kbd>Enter</Kbd>}
+      <Button tone="primary" onClick={round.next} autoFocus={keyboard}>
+        {t.intro.go} {keyboard && <Kbd>Enter</Kbd>}
       </Button>
     ),
   }
 }
 
-function summaryView({ round, overview, desktop, focus, setFocus }: Ctx): View {
-  const { questions, results, practice } = round.round
-  const asked = questions.filter((q) => q.kind !== 'intro')
-  const misses = questions.filter((_, i) => results[i] === false) as Exclude<Question, { kind: 'intro' }>[]
-  const score = results.filter((r) => r === true).length
-  // where a miss is pinned: its section, the end where the numbering starts, or the street
-  const geometryOf = (q: (typeof misses)[number]) =>
+/**
+ * Score and every question of the round, numbered like their pins on the map (green right, red
+ * wrong). A tapped row shows that question as it looked after answering: result and truck route.
+ */
+function summaryView(ctx: Ctx): View {
+  const { round, overview, keyboard, focus, setFocus } = ctx
+  const { questions, results, picks, practice } = round.round
+  const asked = questions.flatMap((q, i) => (q.kind === 'intro' ? [] : [{ q, right: results[i]!, pick: picks[i]! }]))
+  const misses = asked.filter((a) => !a.right).length
+  const score = asked.length - misses
+  const tone = (a: (typeof asked)[number]): Tone => (a.right ? 'ok' : 'bad')
+  // where a question is pinned: its section, the end where the numbering starts, or the street
+  const geometryOf = (q: Asked) =>
     q.kind === 'section'
       ? q.item.sections[q.section]!.geometry
       : q.kind === 'start'
         ? point(q.ends.low)
         : q.item.geometry
-  const tone = (i: number): Tone => (focus === null || focus === i ? 'bad' : 'dim')
-  const focused = focus === null ? undefined : misses[focus]
-  const labels: Label[] = misses.map((q, i) =>
-    i === focus
-      ? { text: rowTitle(q), color: TONE_COLOR.bad, at: geometryOf(q) }
-      : { text: String(i + 1), color: TONE_COLOR[tone(i)], at: geometryOf(q), pin: true },
-  )
-  if (focused) labels.unshift(labels.splice(focus!, 1)[0]!)
+  const note = ({ q, pick }: (typeof asked)[number]) => {
+    if (q.kind === 'section') return t.question.nr(sectionLabel(q.item.sections[q.section]!))
+    if (q.kind === 'start') return t.question.nr(q.ends.from)
+    const tapped = round.items.find((i) => i.id === pick)
+    return tapped && tapped.id !== q.item.id ? t.question.off(distanceM(q.item, tapped)) : undefined
+  }
+  const focused = focus === null ? undefined : asked[focus]
+  const again = focused && askView(ctx, focused.q, focused.pick, null)
+  const scoreText = t.summary.score(score, asked.length)
+
   return {
-    map: {
-      highlights: misses.flatMap((q, i) => (q.kind === 'section' ? [] : [{ id: q.item.id, tone: tone(i) }])),
-      overlays: misses.flatMap((q, i) =>
-        q.kind === 'section' ? [{ key: i, geometry: geometryOf(q), color: TONE_COLOR[tone(i)] }] : [],
+    map: again?.map ?? {
+      highlights: asked.flatMap((a) => (a.q.kind === 'section' ? [] : [{ id: a.q.item.id, tone: tone(a) }])),
+      overlays: asked.flatMap((a, i) =>
+        a.q.kind === 'section' ? [{ key: i, geometry: geometryOf(a.q), color: TONE_COLOR[tone(a)] }] : [],
       ),
-      labels,
-      fit: focused ? withMargin(focused.item.bbox) : overview,
+      labels: asked.map((a, i) => ({
+        text: String(i + 1),
+        color: TONE_COLOR[tone(a)],
+        at: geometryOf(a.q),
+        pin: true,
+      })),
+      fit: overview,
     },
-    prompt: (
+    tone: again?.tone,
+    prompt: again ? (
+      <>
+        <button onClick={() => setFocus(null)} className="-my-2 self-start py-2 text-sm font-semibold text-stone-500">
+          ‹ {scoreText}
+        </button>
+        {again.prompt}
+      </>
+    ) : (
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <div className="text-sm text-stone-500">{practice ? t.summary.practiceDone : t.summary.roundDone}</div>
-          <div className="text-2xl font-bold tracking-tight">{t.summary.score(score, asked.length)}</div>
-          {misses.length > 0 && <div className="text-xs text-stone-500">{t.summary.missesBack}</div>}
+          <div className="text-2xl font-bold tracking-tight">{scoreText}</div>
+          <div className="text-xs text-stone-500">{misses > 0 ? t.summary.missesBack : t.summary.perfect}</div>
         </div>
         {/* the snail cheers for a good round and keeps studying the map otherwise */}
         <img src={score >= asked.length * 0.7 ? snailCheer : snailMap} alt="" className="h-16 w-auto" />
       </div>
     ),
-    body:
-      misses.length > 0 ? (
-        // on a portrait phone the list scrolls on its own, so the map keeps its room
-        <div className="flex flex-col gap-1 portrait:max-h-[30dvh] portrait:overflow-y-auto">
-          <div className="text-xs font-semibold tracking-wider text-stone-500 uppercase">{t.summary.missesTitle}</div>
-          <ListRows
-            rows={misses.map((q, i) => ({
-              title: q.item.name,
-              note:
-                q.kind === 'section'
-                  ? t.question.nr(sectionLabel(q.item.sections[q.section]!))
-                  : q.kind === 'start'
-                    ? t.question.nr(q.ends.from)
-                    : undefined,
-              color: TONE_COLOR[tone(i)],
-            }))}
-            focus={focus}
-            setFocus={setFocus}
-          />
-        </div>
-      ) : (
-        <div>{t.summary.perfect}</div>
-      ),
+    // on a portrait phone the list scrolls on its own, so the map keeps its room
+    body: (
+      <div className="flex flex-col gap-1 portrait:max-h-[30dvh] portrait:overflow-y-auto">
+        <div className="text-xs font-semibold tracking-wider text-stone-500 uppercase">{t.summary.roundTitle}</div>
+        <ListRows
+          rows={asked.map((a) => ({ title: a.q.item.name, note: note(a), color: TONE_COLOR[tone(a)] }))}
+          focus={focus}
+          setFocus={setFocus}
+        />
+      </div>
+    ),
     action: (
       <div className="flex flex-col gap-2">
-        {misses.length > 0 ? (
-          <Button tone="primary" onClick={round.practiceMisses} autoFocus={desktop}>
-            {t.summary.fixMisses(misses.length)} {desktop && <Kbd>Enter</Kbd>}
+        {misses > 0 ? (
+          <Button tone="primary" onClick={round.practiceMisses} autoFocus={keyboard}>
+            {t.summary.fixMisses(misses)} {keyboard && <Kbd>Enter</Kbd>}
           </Button>
         ) : (
-          <Button tone="primary" onClick={round.start} autoFocus={desktop}>
-            {t.summary.newRound} {desktop && <Kbd>Enter</Kbd>}
+          <Button tone="primary" onClick={round.start} autoFocus={keyboard}>
+            {t.summary.newRound} {keyboard && <Kbd>Enter</Kbd>}
           </Button>
         )}
         <Button tone="plain" onClick={round.quit}>
-          <span className="flex-1 text-center">{t.summary.done}</span> {desktop && <Kbd>Esc</Kbd>}
+          <span className="flex-1 text-center">{t.summary.done}</span> {keyboard && <Kbd>Esc</Kbd>}
         </Button>
       </div>
     ),
   }
 }
 
-const rowTitle = (q: Exclude<Question, { kind: 'intro' }>) =>
-  q.kind === 'section'
-    ? `${q.item.name} ${sectionLabel(q.item.sections[q.section]!)}`
-    : q.kind === 'start'
-      ? `${q.item.name} ${t.question.nr(q.ends.from)}`
-      : q.item.name
-
 /** Which route (routes.json) leads to what a question asks. */
-function routeKey(q: Exclude<Question, { kind: 'intro' }>): string {
+function routeKey(q: Asked): string {
   if (q.kind === 'section') return `${q.item.id}:${sectionKey(q.item.sections[q.section]!)}`
   if (q.kind === 'start') return `${q.item.id}:start`
   return q.item.id
