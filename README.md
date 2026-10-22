@@ -3,6 +3,15 @@
 Web app for Feuerwehr Oberwil drivers to learn the streets of Oberwil BL – phone layout plus a
 sidebar layout on desktop (≥ 1024 px).
 
+<p align="center">
+  <img src="docs/screenshots/phone-home.webp" width="30%" alt="Start screen: next round, mode Finden / Benennen, house-number and intro switches, progress">
+  <img src="docs/screenshots/phone-name.webp" width="30%" alt="«Benennen» question: one street highlighted in orange, four nearby street names to pick from">
+  <img src="docs/screenshots/phone-intro-fr.webp" width="30%" alt="New streets introduced on one map, here in French: «4 nouvelles rues»">
+</p>
+<p align="center">
+  <img src="docs/screenshots/desktop-route.webp" width="92%" alt="Desktop: right answer, the truck drives the route from the fire station to the street">
+</p>
+
 The app opens on a start screen: what's due, mode, options and progress. Practice happens in rounds
 of 10 questions; new streets are first shown a few at a time (all on one map), then asked. Right
 answers move on by themselves after 2 s (the «Weiter» button fills up meanwhile), the result of a
@@ -40,6 +49,9 @@ Pushes to `main` deploy to GitHub Pages (`.github/workflows/deploy.yml`).
 station's address and local route fixes (barriers OSM lacks, residential streets used as access
 roads). The app title, web manifest and data pipeline all read it; the shape is `src/region.ts`.
 
+The UI speaks German, French or English (`language`). The copy lives in `src/i18n/`: `de.ts` is the
+source, `fr.ts` and `en.ts` must match its shape, so a missing translation fails `tsc`.
+
 ## Progress backup
 
 `server/` is a tiny FastAPI service (SQLite on a volume) that stores each device's cards under an
@@ -72,3 +84,8 @@ barriers, residential streets they use as access roads) goes into two short list
 
 Sources: swisstopo «Amtliches Strassenverzeichnis» and «Amtliches Gebäudeadressverzeichnis»
 (BFS-Nr. 2771); road network © OpenStreetMap contributors (ODbL).
+
+## License
+
+Code: [MIT](LICENSE). Generated data keeps its sources' terms: swisstopo (free use with attribution),
+OpenStreetMap-derived routes (ODbL).
