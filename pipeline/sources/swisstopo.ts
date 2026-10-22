@@ -10,7 +10,7 @@ import { readTable, type Shape } from './filegdb.ts'
 //   and named areas as polygons (PURE_PLY). swisstopo publishes the geometry only as File
 //   Geodatabase or INTERLIS, read here with a small built-in FileGDB reader.
 // - Amtliches Gebäudeadressverzeichnis: every building address with coordinates (CSV).
-// The downloads cover all of Switzerland (~150 MB) and are cached in pipeline/cache.
+// The downloads cover all of Switzerland (~150 MB) and are cached in the cache directory (.cache).
 
 const STREETS =
   'https://data.geo.admin.ch/ch.swisstopo.amtliches-strassenverzeichnis/amtliches-strassenverzeichnis_ch/amtliches-strassenverzeichnis_ch_2056'
@@ -21,17 +21,43 @@ const ADDRESSES =
 export const LV95 =
   '+proj=somerc +lat_0=46.9524055555556 +lon_0=7.43958333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs'
 
-export async function swisstopo(region: Region): Promise<SourceData> {
+/** Cheap pre-filter for a municipality's rows: its BFS number as a whole `;` cell. */
+const inTown = (bfs: number) => (line: string) => line.includes(`;${bfs};`)
+
+/** A Swiss municipality as the street register names it, e.g. `{ bfs: 2771, name: 'Oberwil (BL)', canton: 'BL' }`. */
+export type Municipality = { bfs: number; name: string; canton: string }
+
+/** Every municipality in the street register (downloaded into `cache` once). */
+export async function municipalities(cache: string): Promise<Municipality[]> {
+  const found = new Map<number, Municipality>()
+  for await (const r of readCsv(await cachedZip(`${STREETS}.csv.zip`, cache), () => true)) {
+    const bfs = Number(r.COM_FOSNR)
+    if (!found.has(bfs)) found.set(bfs, { bfs, name: r.COM_NAME!, canton: r.COM_CANTON! })
+  }
+  return [...found.values()].toSorted((a, b) => a.name.localeCompare(b.name, 'de'))
+}
+
+/** House numbers by street name of the real addresses in a municipality, for checking the station address. */
+export async function addressBook(cache: string, bfs: number): Promise<Map<string, string[]>> {
+  const book = new Map<string, string[]>()
+  for await (const r of readCsv(await cachedZip(`${ADDRESSES}.csv.zip`, cache), inTown(bfs)))
+    if (Number(r.COM_FOSNR) === bfs && r.ADR_STATUS === 'real') {
+      const numbers = book.get(r.STN_LABEL!) ?? book.set(r.STN_LABEL!, []).get(r.STN_LABEL!)!
+      numbers.push(r.ADR_NUMBER!)
+    }
+  return book
+}
+
+export async function swisstopo(region: Region, cache: string): Promise<SourceData> {
   const { bfs } = region.source
   const [gdb, streetCsv, addressCsv] = [
-    await cachedZip(`${STREETS}.gdb.zip`),
-    await cachedZip(`${STREETS}.csv.zip`),
-    await cachedZip(`${ADDRESSES}.csv.zip`),
+    await cachedZip(`${STREETS}.gdb.zip`, cache),
+    await cachedZip(`${STREETS}.csv.zip`, cache),
+    await cachedZip(`${ADDRESSES}.csv.zip`, cache),
   ]
-  const inTown = (line: string) => line.includes(`;${bfs};`)
 
   const names = new Map<number, string>()
-  for await (const r of readCsv(streetCsv, inTown))
+  for await (const r of readCsv(streetCsv, inTown(bfs)))
     if (Number(r.COM_FOSNR) === bfs && r.STR_STATUS === 'real') names.set(Number(r.STR_ESID), r.STN_LABEL!)
 
   const shapes = (layer: string) => {
@@ -49,7 +75,7 @@ export async function swisstopo(region: Region): Promise<SourceData> {
 
   const addresses: SourceData['addresses'] = []
   let station: SourceData['station'] | undefined
-  for await (const r of readCsv(addressCsv, inTown)) {
+  for await (const r of readCsv(addressCsv, inTown(bfs))) {
     if (Number(r.COM_FOSNR) !== bfs || r.ADR_STATUS !== 'real') continue
     const at: XY = [Number(r.ADR_EASTING), Number(r.ADR_NORTHING)]
     addresses.push({ streetId: r.STR_ESID!, number: r.ADR_NUMBER!, at })

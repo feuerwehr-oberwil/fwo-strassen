@@ -10,31 +10,29 @@ import {
   rmSync,
 } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { createInflateRaw } from 'node:zlib'
 
-/** Downloads are kept here between runs (gitignored). */
-export const CACHE = join(import.meta.dirname, 'cache')
-
-/** Downloads a zip once and extracts it into the cache; returns the path without `.zip`. */
-export async function cachedZip(url: string): Promise<string> {
-  const zip = join(CACHE, url.slice(url.lastIndexOf('/') + 1))
+/** Downloads a zip once and extracts it into `cache` (kept between runs); returns the path without `.zip`. */
+export async function cachedZip(url: string, cache: string): Promise<string> {
+  const zip = join(cache, url.slice(url.lastIndexOf('/') + 1))
   const target = zip.replace(/\.zip$/, '')
   if (existsSync(target)) return target
-  mkdirSync(CACHE, { recursive: true })
+  mkdirSync(cache, { recursive: true })
   console.log(`downloading ${url} …`)
   const res = await fetch(url)
   if (!res.ok || !res.body) throw new Error(`${url}: HTTP ${res.status}`)
   await pipeline(Readable.fromWeb(res.body), createWriteStream(zip))
-  await unzip(zip, CACHE)
+  await unzip(zip, cache)
   rmSync(zip)
   return target
 }
 
-/** Extracts a zip (stored or deflated entries, no zip64) into `dir`. */
-export async function unzip(zip: string, dir: string): Promise<void> {
+/** Extracts a zip (stored or deflated entries, no zip64) into `into`. */
+export async function unzip(zip: string, into: string): Promise<void> {
+  const dir = resolve(into)
   const fd = openSync(zip, 'r')
   try {
     const read = (at: number, n: number) => {
@@ -66,7 +64,7 @@ export async function unzip(zip: string, dir: string): Promise<void> {
       const name = cd.toString('utf8', at + 46, at + 46 + nameLen).replaceAll('\\', '/')
       at += 46 + nameLen + extraLen + commentLen
       const out = join(dir, name)
-      if (!out.startsWith(dir)) throw new Error(`${zip}: unsafe path ${name}`)
+      if (!out.startsWith(dir + sep)) throw new Error(`${zip}: unsafe path ${name}`)
       if (name.endsWith('/')) {
         mkdirSync(out, { recursive: true })
         continue

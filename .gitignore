@@ -23,9 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 
-# data pipeline downloads
-pipeline/cache
-
 # backup server
 server/.venv
 *.db
+
+# prebuilt app and compiled CLI (npm package), town data downloads
+/app
+/cli-dist
+/.cache
+*.tgz

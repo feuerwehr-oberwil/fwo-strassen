@@ -1,4 +1,4 @@
-import type { Item } from '../town'
+import type { Item } from '../town.ts'
 
 type Kind = Item['kind']
 const dec = (m: number) => (m / 1000).toFixed(1).replace('.', ',')
@@ -9,7 +9,7 @@ const dec = (m: number) => (m / 1000).toFixed(1).replace('.', ',')
  */
 export const de = {
   appName: 'Strassen-Trainer',
-  /** index.html and the web manifest (vite.config.ts). */
+  /** index.html and the web manifest (cli/site.ts). */
   page: {
     title: (town: string) => `Strassen-Trainer ${town}`,
     shortName: 'Strassen',

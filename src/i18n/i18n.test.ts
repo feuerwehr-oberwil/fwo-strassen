@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { messages } from '.'
+import { messages } from './messages.ts'
 
 /** Every message of a language as text; functions are called with 0, 1 and 2 for each argument. */
 function texts(node: unknown): string[] {

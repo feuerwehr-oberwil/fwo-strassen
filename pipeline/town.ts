@@ -18,7 +18,7 @@ import {
 } from './geometry.ts'
 import type { SourceData } from './source.ts'
 
-// Builds src/data/town.json from a source's streets, areas and addresses: house-number sections
+// Builds data/town.json from a source's streets, areas and addresses: house-number sections
 // for long streets, numbering ends for shorter ones, cross streets, simplified WGS84 geometry.
 
 const LONG_STREET_M = 500 // streets longer than this get house-number sections
@@ -161,7 +161,7 @@ export function crossStreets(section: Line[], ownId: string, streets: SourceData
   return [...new Set(found.map((s) => s.name))]
 }
 
-/** The town as the app loads it (src/data/town.json), from a source's raw data. */
+/** The town as the app loads it (data/town.json), from a source's raw data. */
 export function buildTown(data: SourceData): Town {
   const toWgs84 = proj4(data.crs, 'WGS84')
   const round5 = (v: number) => Number(v.toFixed(5))

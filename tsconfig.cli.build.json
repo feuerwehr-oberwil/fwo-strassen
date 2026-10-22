@@ -1,0 +1,13 @@
+{
+  // The published CLI as plain JS in cli-dist/ (`prepack`): Node strips types only outside
+  // node_modules, so `npx strassen-trainer` can't run the .ts sources.
+  "extends": "./tsconfig.cli.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": ".",
+    "outDir": "cli-dist",
+    "rewriteRelativeImportExtensions": true
+  },
+  "include": ["cli"],
+  "exclude": ["**/*.test.ts"]
+}

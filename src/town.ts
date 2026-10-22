@@ -1,6 +1,6 @@
 import type { Geometry, LineString, MultiLineString, Position } from 'geojson'
 
-// Shape of src/data/town.json, written by pipeline/town.ts.
+// Shape of data/town.json, written by pipeline/town.ts.
 export type LngLat = [lng: number, lat: number]
 export type BBox = [west: number, south: number, east: number, north: number]
 
@@ -73,7 +73,7 @@ export function coreBBox(items: Item[]): BBox {
 }
 
 /**
- * Truck routes from the station (src/data/routes.json, written by pipeline/routes.ts), keyed
+ * Truck routes from the station (data/routes.json, written by pipeline/routes.ts), keyed
  * "<id>" for streets and areas, "<id>:<section>" for house-number sections and "<id>:start" for
  * the end where a shorter street's numbering starts.
  */
