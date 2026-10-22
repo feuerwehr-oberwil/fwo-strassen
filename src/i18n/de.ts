@@ -2,6 +2,8 @@ import type { Item } from '../town.ts'
 
 type Kind = Item['kind']
 const dec = (m: number) => (m / 1000).toFixed(1).replace('.', ',')
+/** How far off a wrong tap was: alone in the summary list, after «Daneben» on the card. */
+const off = (m: number) => (m < 50 ? 'knapp' : m < 1000 ? `rund ${Math.round(m / 50) * 50} m` : `rund ${dec(m)} km`)
 
 /**
  * German copy (Swiss: ss, «», –), the source of truth: fr.ts and en.ts must have the same shape.
@@ -36,13 +38,12 @@ export const de = {
     numbersHint: 'Abschnitte langer Strassen, bei kürzeren wo Nr. 1 liegt',
     intro: 'Neue Strassen vorstellen',
     introHint: 'Zuerst zeigen, dann abfragen',
-    progress: (mode: string, withNumbers: boolean) => `Fortschritt · ${mode}${withNumbers ? ' mit Hausnummern' : ''}`,
   },
   progress: {
     solid: (n: number) => `${n} sicher`,
     learning: (n: number) => `${n} am Lernen`,
     fresh: (n: number) => `${n} neu`,
-    today: (n: number) => `heute ${n} beantwortet`,
+    today: (n: number) => `heute ${n}`,
   },
   /** aria-label of the round's progress bars. */
   roundDots: (current: number, total: number, right: number) => `Frage ${current} von ${total}, ${right} richtig`,
@@ -52,9 +53,8 @@ export const de = {
     next: 'Weiter',
     results: 'Auswertung',
     right: 'Richtig',
-    /** How far off a wrong tap was. */
-    wrong: (m: number) =>
-      `Daneben – ${m < 50 ? 'knapp' : m < 1000 ? `rund ${Math.round(m / 50) * 50} m` : `rund ${dec(m)} km`}`,
+    off,
+    wrong: (m: number) => `Daneben – ${off(m)}`,
     target: 'gesucht',
     yourTap: 'dein Tipp',
     tap: (kind: Kind) => `Tippe auf ${kind === 'area' ? 'das Gebiet' : 'die Strasse'}`,
@@ -85,7 +85,7 @@ export const de = {
     roundDone: 'Runde fertig',
     score: (right: number, total: number) => `${right} / ${total} richtig`,
     missesBack: 'Fehler kommen in der nächsten Runde wieder.',
-    missesTitle: 'Deine Fehler – antippen zum Zeigen',
+    roundTitle: 'Deine Runde – antippen zum Ansehen',
     perfect: 'Alles richtig – stark!',
     fixMisses: (n: number) => `Fehler korrigieren (${n})`,
     newRound: 'Neue Runde',
@@ -98,6 +98,8 @@ export const de = {
   },
   backup: {
     title: 'Fortschritt sichern',
+    lineHint: 'Name + PIN',
+    close: 'Schliessen',
     hint: 'Mit Name und PIN auf jedem Gerät weiterlernen. Nur du kennst die PIN.',
     name: 'Name',
     pin: 'PIN (4 Ziffern)',

@@ -143,7 +143,8 @@ export function TownMap({
       if (point && onPickOverlay) {
         const o = overlays.find((o) => o.key === nearest(m, point, OVERLAY_HIT)?.properties.key)
         if (o) [key, geometry] = [`o:${o.key}`, o.geometry]
-      } else if (point && onPickItem) {
+      }
+      if (point && !key && onPickItem) {
         const item = byId.get(nearest(m, point, ['items-hit', 'areas-fill'])?.properties.id)
         if (item) [key, geometry] = [`i:${item.id}`, item.geometry]
       }
@@ -153,13 +154,11 @@ export function TownMap({
     }
     const pick = (point: { x: number; y: number }) => {
       const { onPickItem, onPickOverlay } = live.current
-      if (onPickOverlay) {
-        const key = nearest(m, point, OVERLAY_HIT)?.properties.key
-        if (typeof key === 'number') onPickOverlay(key)
-      } else if (onPickItem) {
-        const id = nearest(m, point, ['items-hit', 'areas-fill'])?.properties.id
-        if (typeof id === 'string') onPickItem(id)
-      }
+      // a section overlay wins; a tap next to every overlay can still pick a street
+      const key = onPickOverlay && nearest(m, point, OVERLAY_HIT)?.properties.key
+      if (onPickOverlay && typeof key === 'number') return onPickOverlay(key)
+      const id = onPickItem && nearest(m, point, ['items-hit', 'areas-fill'])?.properties.id
+      if (onPickItem && typeof id === 'string') onPickItem(id)
     }
     let pendingTap: ReturnType<typeof setTimeout> | undefined
     m.on('click', (ev) => {

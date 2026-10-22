@@ -3,6 +3,10 @@ import type { Messages } from './de.ts'
 
 type Kind = Item['kind']
 const dec = (m: number) => (m / 1000).toFixed(1)
+/** How far off a wrong tap was: alone in the summary list, after «Missed» on the card. */
+const off = (m: number) =>
+  m < 50 ? 'close' : m < 1000 ? `about ${Math.round(m / 50) * 50} m off` : `about ${dec(m)} km off`
+
 const s = (n: number) => (n === 1 ? '' : 's')
 
 /** English copy. */
@@ -33,13 +37,12 @@ export const en = {
     numbersHint: 'Sections of long streets, on shorter ones where No. 1 is',
     intro: 'Introduce new streets',
     introHint: 'Show first, then ask',
-    progress: (mode: string, withNumbers: boolean) => `Progress · ${mode}${withNumbers ? ' with house numbers' : ''}`,
   },
   progress: {
     solid: (n: number) => `${n} known`,
     learning: (n: number) => `${n} learning`,
     fresh: (n: number) => `${n} new`,
-    today: (n: number) => `${n} answered today`,
+    today: (n: number) => `today ${n}`,
   },
   roundDots: (current: number, total: number, right: number) => `Question ${current} of ${total}, ${right} right`,
 
@@ -48,8 +51,8 @@ export const en = {
     next: 'Next',
     results: 'Results',
     right: 'Right',
-    wrong: (m: number) =>
-      `Missed – ${m < 50 ? 'close' : m < 1000 ? `about ${Math.round(m / 50) * 50} m off` : `about ${dec(m)} km off`}`,
+    off,
+    wrong: (m: number) => `Missed – ${off(m)}`,
     target: 'correct',
     yourTap: 'your tap',
     tap: (kind: Kind) => `Tap the ${kind === 'area' ? 'area' : 'street'}`,
@@ -78,7 +81,7 @@ export const en = {
     roundDone: 'Round done',
     score: (right: number, total: number) => `${right} / ${total} right`,
     missesBack: 'Mistakes come back next round.',
-    missesTitle: 'Your mistakes – tap to show',
+    roundTitle: 'Your round – tap to see',
     perfect: 'All right – great job!',
     fixMisses: (n: number) => `Fix mistakes (${n})`,
     newRound: 'New round',
@@ -91,6 +94,8 @@ export const en = {
   },
   backup: {
     title: 'Save your progress',
+    lineHint: 'name + PIN',
+    close: 'Close',
     hint: 'Keep learning on any device with a name and PIN. Only you know the PIN.',
     name: 'Name',
     pin: 'PIN (4 digits)',
