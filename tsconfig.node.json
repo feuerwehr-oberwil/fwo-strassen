@@ -4,10 +4,13 @@
     "target": "es2023",
     "lib": ["ES2023"],
     "types": ["node"],
+    "allowArbitraryExtensions": true,
     "skipLibCheck": true,
 
     /* Bundler mode */
-    "module": "nodenext",
+    // vite bundles its config, so resolve like a bundler (also lets region.json use region.d.json.ts)
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
@@ -19,5 +22,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts", "region.d.json.ts"]
 }
