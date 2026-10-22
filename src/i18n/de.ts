@@ -38,13 +38,12 @@ export const de = {
     numbersHint: 'Abschnitte langer Strassen, bei kürzeren wo Nr. 1 liegt',
     intro: 'Neue Strassen vorstellen',
     introHint: 'Zuerst zeigen, dann abfragen',
-    progress: (mode: string, withNumbers: boolean) => `Fortschritt · ${mode}${withNumbers ? ' mit Hausnummern' : ''}`,
   },
   progress: {
     solid: (n: number) => `${n} sicher`,
     learning: (n: number) => `${n} am Lernen`,
     fresh: (n: number) => `${n} neu`,
-    today: (n: number) => `heute ${n} beantwortet`,
+    today: (n: number) => `heute ${n}`,
   },
   /** aria-label of the round's progress bars. */
   roundDots: (current: number, total: number, right: number) => `Frage ${current} von ${total}, ${right} richtig`,
@@ -99,6 +98,8 @@ export const de = {
   },
   backup: {
     title: 'Fortschritt sichern',
+    lineHint: 'Name + PIN',
+    close: 'Schliessen',
     hint: 'Mit Name und PIN auf jedem Gerät weiterlernen. Nur du kennst die PIN.',
     name: 'Name',
     pin: 'PIN (4 Ziffern)',

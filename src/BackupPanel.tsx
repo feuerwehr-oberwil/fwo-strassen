@@ -2,17 +2,18 @@ import { useState } from 'react'
 import { PIN, type Backup } from './backup'
 import { t } from './i18n'
 
-type Step = { kind: 'form' } | { kind: 'missing' } | { kind: 'welcome' }
+type Step = { kind: 'closed' } | { kind: 'form' } | { kind: 'missing' } | { kind: 'welcome' }
 
 /**
- * Name + PIN backup on the start screen. Without a profile: a card to sign in; if nobody has that
- * name + PIN, it asks before creating a profile (a wrong PIN looks exactly like a new person to the
- * server). With a profile: one status line with «Abmelden».
+ * Name + PIN backup on the start screen. Without a profile: one line «Fortschritt sichern ›» that
+ * opens in place into the sign-in form; if nobody has that name + PIN, it asks before creating a
+ * profile (a wrong PIN looks exactly like a new person to the server). With a profile: one status
+ * line with «Abmelden».
  */
 export function BackupPanel({ backup }: { backup: Backup }) {
   const [name, setName] = useState('')
   const [pin, setPin] = useState('')
-  const [step, setStep] = useState<Step>({ kind: 'form' })
+  const [step, setStep] = useState<Step>({ kind: 'closed' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   if (backup.status === 'off') return null
@@ -32,7 +33,7 @@ export function BackupPanel({ backup }: { backup: Backup }) {
   const create = () =>
     run(async () => {
       if ((await backup.create(name, pin)) === 'offline') setError(t.backup.offline)
-      else setStep({ kind: 'form' })
+      else setStep({ kind: 'closed' })
     })
 
   if (backup.profile) {
@@ -52,7 +53,7 @@ export function BackupPanel({ backup }: { backup: Backup }) {
             onClick={() => {
               backup.signOut()
               setPin('')
-              setStep({ kind: 'form' })
+              setStep({ kind: 'closed' })
             }}
           >
             {t.backup.signOut}
@@ -62,13 +63,45 @@ export function BackupPanel({ backup }: { backup: Backup }) {
     )
   }
 
+  if (step.kind === 'closed' || step.kind === 'welcome')
+    return (
+      <button
+        onClick={() => setStep({ kind: 'form' })}
+        className="flex min-h-11 items-center gap-2 rounded-2xl bg-white px-4 text-left text-sm shadow-sm"
+      >
+        <Cloud className="text-stone-400" />
+        <span className="font-semibold">{t.backup.title}</span>
+        <span className="text-xs text-stone-500">{t.backup.lineHint}</span>
+        <span className="ml-auto text-stone-400" aria-hidden="true">
+          ›
+        </span>
+      </button>
+    )
+
+  const close = (
+    <button
+      type="button"
+      onClick={() => {
+        setError(null)
+        setStep({ kind: 'closed' })
+      }}
+      aria-label={t.backup.close}
+      className="-m-2 grid size-11 shrink-0 place-items-center text-stone-400"
+    >
+      ✕
+    </button>
+  )
+
   return (
     <section className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm">
       {step.kind === 'missing' ? (
         <>
-          <div>
-            <div className="text-sm font-semibold">{t.backup.notFound(name.trim())}</div>
-            <div className="text-xs text-stone-600">{t.backup.notFoundHint}</div>
+          <div className="flex items-start gap-2">
+            <div className="flex-1">
+              <div className="text-sm font-semibold">{t.backup.notFound(name.trim())}</div>
+              <div className="text-xs text-stone-600">{t.backup.notFoundHint}</div>
+            </div>
+            {close}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -98,13 +131,17 @@ export function BackupPanel({ backup }: { backup: Backup }) {
             void signIn()
           }}
         >
-          <div>
-            <div className="text-sm font-semibold">{t.backup.title}</div>
-            <div className="text-xs text-stone-500">{t.backup.hint}</div>
+          <div className="flex items-start gap-2">
+            <div className="flex-1">
+              <div className="text-sm font-semibold">{t.backup.title}</div>
+              <div className="text-xs text-stone-500">{t.backup.hint}</div>
+            </div>
+            {close}
           </div>
           <label className="flex flex-col gap-1 text-xs text-stone-600">
             {t.backup.name}
             <input
+              autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoComplete="nickname"

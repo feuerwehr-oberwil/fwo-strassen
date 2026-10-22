@@ -21,8 +21,9 @@ export const MODES = [
 ] as const satisfies readonly { value: Mode; icon: string }[]
 
 /**
- * Start screen: in iOS Safari a tip to install the app, what the next round brings, the «Runde starten» button, mode and options, and the
- * progress for the chosen mode. Settings live only here, so a round never changes under you.
+ * Start screen, sized to fit a phone without scrolling: in iOS Safari a tip to install the app; one
+ * card with the mode switch, what the next round brings, the progress for that mode and «Runde
+ * starten»; the options; the backup line. Settings live only here, so a round never changes under you.
  */
 export function Home({
   round,
@@ -44,43 +45,46 @@ export function Home({
   return (
     <div className="flex flex-col gap-4">
       <InstallHint />
-      <section className="rounded-2xl bg-white p-4 shadow-sm">
-        <div className="text-sm text-stone-500">{t.home.nextRound}</div>
-        <div className="text-2xl font-bold tracking-tight">{headline}</div>
-        <div className="mb-3 text-sm text-stone-600">{t.home.questions(ROUND_SIZE, due > 0 && counts.fresh > 0)}</div>
+      <section className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm">
+        {/* the mode switch heads the card: next round and progress below belong to that mode */}
+        <div className="grid grid-cols-2 rounded-xl bg-stone-100 p-1" role="radiogroup" aria-label={t.home.mode}>
+          {MODES.map((m) => (
+            <button
+              key={m.value}
+              role="radio"
+              aria-checked={m.value === mode}
+              aria-label={`${t.home.modes[m.value].label}: ${t.home.modes[m.value].hint}`}
+              onClick={() => round.configure({ mode: m.value })}
+              className={`flex min-h-10 items-center justify-center gap-1.5 rounded-lg text-sm font-semibold ${
+                m.value === mode ? 'bg-white shadow-sm' : 'text-stone-500'
+              }`}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="size-4 shrink-0"
+                fill="none"
+                stroke={m.value === mode ? '#dc2626' : '#78716c'}
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d={m.icon} />
+              </svg>
+              {t.home.modes[m.value].hint}
+            </button>
+          ))}
+        </div>
+        <div>
+          <div className="text-sm text-stone-500">{t.home.nextRound}</div>
+          <div className="text-2xl font-bold tracking-tight">{headline}</div>
+          <div className="text-sm text-stone-600">{t.home.questions(ROUND_SIZE, due > 0 && counts.fresh > 0)}</div>
+        </div>
+        <ProgressBar today={progress.today} {...counts} />
         <Button tone="primary" onClick={round.start} autoFocus={keyboard}>
           {t.home.start} {keyboard && <Kbd>Enter</Kbd>}
         </Button>
       </section>
-
-      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t.home.mode}>
-        {MODES.map((m) => (
-          <button
-            key={m.value}
-            role="radio"
-            aria-checked={m.value === mode}
-            onClick={() => round.configure({ mode: m.value })}
-            className={`flex flex-col items-start rounded-2xl bg-white p-3 text-left shadow-sm ${
-              m.value === mode ? 'ring-2 ring-stone-900' : 'text-stone-600'
-            }`}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="mb-1 size-6"
-              fill="none"
-              stroke={m.value === mode ? '#dc2626' : '#78716c'}
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d={m.icon} />
-            </svg>
-            <span className="font-bold">{t.home.modes[m.value].label}</span>
-            <span className="text-xs text-stone-500">{t.home.modes[m.value].hint}</span>
-          </button>
-        ))}
-      </div>
 
       <section className="flex flex-col rounded-2xl bg-white px-4 py-1 shadow-sm">
         <Switch checked={withNumbers} onChange={(withNumbers) => round.configure({ withNumbers })} wide>
@@ -95,11 +99,6 @@ export function Home({
             <span className="block text-xs text-stone-500">{t.home.introHint}</span>
           </span>
         </Switch>
-      </section>
-
-      <section className="flex flex-col gap-2 rounded-2xl bg-white p-4 shadow-sm">
-        <div className="text-sm font-semibold">{t.home.progress(t.home.modes[mode].label, withNumbers)}</div>
-        <ProgressBar today={progress.today} {...counts} />
       </section>
 
       <BackupPanel backup={backup} />

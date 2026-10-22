@@ -37,13 +37,12 @@ export const en = {
     numbersHint: 'Sections of long streets, on shorter ones where No. 1 is',
     intro: 'Introduce new streets',
     introHint: 'Show first, then ask',
-    progress: (mode: string, withNumbers: boolean) => `Progress · ${mode}${withNumbers ? ' with house numbers' : ''}`,
   },
   progress: {
     solid: (n: number) => `${n} known`,
     learning: (n: number) => `${n} learning`,
     fresh: (n: number) => `${n} new`,
-    today: (n: number) => `${n} answered today`,
+    today: (n: number) => `today ${n}`,
   },
   roundDots: (current: number, total: number, right: number) => `Question ${current} of ${total}, ${right} right`,
 
@@ -95,6 +94,8 @@ export const en = {
   },
   backup: {
     title: 'Save your progress',
+    lineHint: 'name + PIN',
+    close: 'Close',
     hint: 'Keep learning on any device with a name and PIN. Only you know the PIN.',
     name: 'Name',
     pin: 'PIN (4 digits)',
