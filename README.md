@@ -91,9 +91,10 @@ pnpm test                                    # includes server/app.test.ts
 node server/main.ts                          # local on :8000, then: VITE_BACKUP_URL=http://127.0.0.1:8000 pnpm dev
 ```
 
-Oberwil runs it on Railway (project `fwo-strassen`, service `backup`): built from the repo root with
-`server/Dockerfile` (service variable `RAILWAY_DOCKERFILE_PATH`), SQLite on a volume at `/data`, app
-origins in `ALLOWED_ORIGINS`.
+Oberwil runs it on Railway (project `fwo-strassen`, service `backup`): GitHub Actions builds
+`server/Dockerfile` into `ghcr.io/feuerwehr-oberwil/fwo-strassen-backup` on every server change
+(`.github/workflows/backup-image.yml`), the service runs that image (`railway redeploy --service backup`
+picks up a new one), SQLite on a volume at `/data`, app origins in `ALLOWED_ORIGINS`.
 
 ## Data
 
