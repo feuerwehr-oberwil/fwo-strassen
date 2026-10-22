@@ -47,7 +47,8 @@ Pushes to `main` deploy to GitHub Pages (`.github/workflows/deploy.yml`).
 
 `region.json` sets the town up: name, brand, language, data source (swisstopo BFS number), the
 station's address and local route fixes (barriers OSM lacks, residential streets used as access
-roads). The app title, web manifest and data pipeline all read it; the shape is `src/region.ts`.
+roads). The app title, web manifest and data pipeline all read it; the shape is the ArkType schema in
+`src/region.ts`, and `pnpm data` stops with a readable error when region.json doesn't match it.
 
 The UI speaks German, French or English (`language`). The copy lives in `src/i18n/`: `de.ts` is the
 source, `fr.ts` and `en.ts` must match its shape, so a missing translation fails `tsc`.
@@ -67,20 +68,27 @@ cd server && uv run uvicorn app:app --reload # local, then: VITE_BACKUP_URL=http
 ## Data
 
 `src/data/town.json`, `src/data/routes.json` and `src/data/basemap.json` are generated, committed
-and bundled into the JS. To refresh them:
+(prettier-formatted) and bundled into the JS. The pipeline in `pipeline/` is TypeScript run by plain
+Node (≥ 22.18, no build step, no Python or GDAL). To refresh them:
 
 ```sh
-pnpm data                        # = cd data && uv run build.py  (~150 MB download, cached in data/cache)
-cd data && uv run routes.py      # truck routes; after build.py (OSM download via Overpass, cached)
-cd data && uv run pytest         # tests for house numbers and routing
-pnpm format                      # the committed JSON is prettier-formatted
+pnpm data          # all three; downloads (~150 MB swisstopo, OSM via Overpass) are cached in pipeline/cache
+pnpm data routes   # single steps: town, routes, basemap (routes and basemap read the town.json there)
+pnpm test          # includes the pipeline tests (house numbers, routing)
 ```
+
+- `pipeline/sources/swisstopo.ts` loads a Swiss town: street names (CSV), street lines and named
+  areas from the File Geodatabase (read by the small built-in `filegdb.ts`; swisstopo publishes the
+  geometry only as FileGDB or INTERLIS) and building addresses (CSV), all in LV95. A source returns
+  raw data in a metric CRS (`pipeline/source.ts`), so other sources can plug in.
+- `pipeline/town.ts` builds the items: house-number sections for long streets, numbering ends for
+  shorter ones, cross streets, simplified WGS84 geometry.
+- `pipeline/routes.ts` routes the truck; `pipeline/basemap.ts` trims swisstopo's light base map.
 
 Routes are the fastest way for a TLF: only roads a truck can use, big access roads preferred, every
 turn costs time, one-way streets respected, no route through a barrier. Footpaths and fields get a
 route to the nearest drivable point. What the drivers know and OpenStreetMap doesn't (missing
-barriers, residential streets they use as access roads) goes into two short lists at the top of
-`data/routes.py`.
+barriers, residential streets they use as access roads) goes into `fixes` in `region.json`.
 
 Sources: swisstopo «Amtliches Strassenverzeichnis» and «Amtliches Gebäudeadressverzeichnis»
 (BFS-Nr. 2771); road network © OpenStreetMap contributors (ODbL).
