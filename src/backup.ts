@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { t } from './i18n'
 import { mergeCards, useStoredState, type Cards, type Progress } from './progress'
 
 // Mirrors the cards to the backup server (server/app.py) under an anonymous code like
@@ -77,11 +78,11 @@ export function useBackup(progress: Progress) {
     /** Continue with the progress saved under another code. Resolves to an error message or null. */
     async restore(input: string): Promise<string | null> {
       const other = input.trim().toLowerCase()
-      if (!CODE.test(other)) return 'So sieht ein Code aus: rot-schnecke-4821'
+      if (!CODE.test(other)) return t.backup.badCode
       try {
-        if (!(await pull(other))) return 'Diesen Code gibt es nicht.'
+        if (!(await pull(other))) return t.backup.unknownCode
       } catch {
-        return 'Keine Verbindung – später nochmal versuchen.'
+        return t.backup.offline
       }
       setStatus('saving')
       setCode(other)

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { t } from './i18n'
 import { TONE_COLOR, type Tone } from './palette'
 import { distanceM, type Item } from './town'
 
@@ -8,9 +9,9 @@ import { distanceM, type Item } from './town'
 export function Result({ target, wrong }: { target: Item; wrong: Item | undefined }) {
   return (
     <div className="flex flex-col gap-1">
-      <Verdict right={!wrong}>{wrong ? `Daneben – ${distanceText(distanceM(target, wrong))}` : 'Richtig'}</Verdict>
-      <LineRow tone="ok" name={target.name} note={wrong && 'gesucht'} big />
-      {wrong && <LineRow tone="bad" dashed name={wrong.name} note="dein Tipp" />}
+      <Verdict right={!wrong}>{wrong ? t.question.wrong(distanceM(target, wrong)) : t.question.right}</Verdict>
+      <LineRow tone="ok" name={target.name} note={wrong && t.question.target} big />
+      {wrong && <LineRow tone="bad" dashed name={wrong.name} note={t.question.yourTap} />}
     </div>
   )
 }
@@ -92,11 +93,4 @@ export function ListRows({
       ))}
     </div>
   )
-}
-
-/** «rund 1,1 km» / «rund 350 m» / «knapp»: how far off a wrong tap was. */
-function distanceText(m: number): string {
-  if (m < 50) return 'knapp'
-  if (m < 1000) return `rund ${Math.round(m / 50) * 50} m`
-  return `rund ${(m / 1000).toFixed(1).replace('.', ',')} km`
 }

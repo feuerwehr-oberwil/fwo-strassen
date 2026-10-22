@@ -1,11 +1,12 @@
+import { t } from './i18n'
 import { useStoredState } from './progress'
+import { inMobileSafariTab } from './standalone'
 
 // iOS Safari never hides its toolbar on a page that doesn't scroll, and no web API can hide it.
 // Opened from the home screen, the app runs without it (manifest: display standalone).
-// `navigator.standalone` exists only on iOS/iPadOS Safari: false in the browser, true as an app.
-const inSafariTab = 'standalone' in navigator && navigator.standalone === false
+const inSafariTab = inMobileSafariTab(navigator)
 
-/** On the start screen in iOS Safari: how to add the app to the home screen. ✕ hides it for good. */
+/** On the start screen in iPhone/iPad Safari: how to add the app to the home screen. ✕ hides it for good. */
 export function InstallHint() {
   const [dismissed, setDismissed] = useStoredState('fwo-strassen:install-hint-dismissed', false)
   if (!inSafariTab || dismissed) return null
@@ -15,15 +16,14 @@ export function InstallHint() {
         <ShareIcon className="size-5" />
       </div>
       <div className="flex-1 pr-6">
-        <div className="font-bold">Als App öffnen – mehr Platz für die Karte</div>
+        <div className="font-bold">{t.install.title}</div>
         <div className="text-sm text-stone-600">
-          Tippe in Safari auf Teilen <ShareIcon className="inline size-4 align-[-3px]" /> und dann auf «Zum
-          Home-Bildschirm». Dann fällt die Safari-Leiste weg.
+          {t.install.before} <ShareIcon className="inline size-4 align-[-3px]" /> {t.install.after}
         </div>
       </div>
       <button
         onClick={() => setDismissed(true)}
-        aria-label="Hinweis ausblenden"
+        aria-label={t.install.dismiss}
         className="absolute top-1.5 right-1.5 grid size-9 place-items-center text-stone-400"
       >
         ✕

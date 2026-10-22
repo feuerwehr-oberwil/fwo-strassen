@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import snailCheer from './assets/snail-cheer.webp'
 import snailMap from './assets/snail-map.webp'
 import routes from './data/routes.json'
+import { t } from './i18n'
 import { NEUTRAL, SECTION_COLORS, TONE_COLOR, type Tone } from './palette'
 import type { Question } from './round'
 import { bboxOf, sectionLabel, union, type BBox, type Item, type LngLat } from './town'
@@ -45,13 +46,13 @@ export function questionView(ctx: Ctx): View {
       <Button tone="primary" onClick={round.next} autoFocus={desktop}>
         {/* a right answer moves on by itself (useRound) */}
         {round.round.results.at(-1) && <Countdown ms={AUTO_NEXT_MS} />}
-        {isLast ? 'Auswertung' : 'Weiter'} {desktop && <Kbd>Enter</Kbd>}
+        {isLast ? t.question.results : t.question.next} {desktop && <Kbd>Enter</Kbd>}
       </Button>
     ) : (
       selection !== null && (
         // map questions: a tap only selects, «Prüfen» answers
         <Button tone="primary" onClick={round.confirm} autoFocus={desktop}>
-          Prüfen {desktop && <Kbd>Enter</Kbd>}
+          {t.question.check} {desktop && <Kbd>Enter</Kbd>}
         </Button>
       )
     )
@@ -90,10 +91,10 @@ export function questionView(ctx: Ctx): View {
             <div className="text-sm text-stone-500">{q.item.name}</div>
           ) : (
             <Verdict right={right}>
-              {right ? `Richtig – ${q.item.name}` : `Daneben – das war Nr. ${sectionLabel(picked!)}`}
+              {right ? t.question.sectionRight(q.item.name) : t.question.sectionWrong(sectionLabel(picked!))}
             </Verdict>
           )}
-          <div className="text-2xl font-bold tracking-tight">Wo liegt Nr. {sectionLabel(s)}?</div>
+          <div className="text-2xl font-bold tracking-tight">{t.question.whereSection(sectionLabel(s))}</div>
         </>
       ),
       action,
@@ -119,9 +120,9 @@ export function questionView(ctx: Ctx): View {
           pick === null
             ? []
             : [
-                { text: `✓ Nr. ${ends.from}`, color: TONE_COLOR.ok, at: point(ends.low) },
+                { text: `✓ ${t.question.nr(ends.from)}`, color: TONE_COLOR.ok, at: point(ends.low) },
                 {
-                  text: `${right ? '' : '✗ '}Nr. ${ends.to}`,
+                  text: `${right ? '' : '✗ '}${t.question.nr(ends.to)}`,
                   color: right ? NEUTRAL : TONE_COLOR.bad,
                   at: point(ends.high),
                 },
@@ -135,18 +136,16 @@ export function questionView(ctx: Ctx): View {
         pick === null ? (
           <>
             <div className="text-sm text-stone-500">{item.name}</div>
-            <div className="text-2xl font-bold tracking-tight">Wo ist Nr. {ends.from}?</div>
-            <div className="text-sm text-stone-500">Tippe auf ein Ende der Strasse</div>
+            <div className="text-2xl font-bold tracking-tight">{t.question.whereStart(ends.from)}</div>
+            <div className="text-sm text-stone-500">{t.question.tapEnd}</div>
           </>
         ) : (
           <>
             <Verdict right={right}>
-              {right ? `Richtig – Nr. ${ends.from} liegt hier` : `Daneben – Nr. ${ends.from} ist am anderen Ende`}
+              {right ? t.question.startRight(ends.from) : t.question.startWrong(ends.from)}
             </Verdict>
             <div className="text-2xl font-bold tracking-tight">{item.name}</div>
-            <div className="text-sm text-stone-500">
-              Nr. {ends.from} bis Nr. {ends.to}
-            </div>
+            <div className="text-sm text-stone-500">{t.question.range(ends.from, ends.to)}</div>
           </>
         ),
       action,
@@ -166,7 +165,6 @@ export function questionView(ctx: Ctx): View {
   const fit = withRoute(q.kind === 'name' || picked ? withMargin(shown) : ctx.overview, shown)
   // with house numbers on, a shorter street shows where its numbering starts and ends
   const labels = picked && round.settings.withNumbers ? endLabels(target) : undefined
-  const what = target.kind === 'area' ? 'das Gebiet' : 'die Strasse'
 
   if (q.kind === 'find')
     return {
@@ -176,7 +174,7 @@ export function questionView(ctx: Ctx): View {
         <Result target={target} wrong={wrong} />
       ) : (
         <>
-          <div className="text-sm text-stone-500">Tippe auf {what}</div>
+          <div className="text-sm text-stone-500">{t.question.tap(target.kind)}</div>
           <div className="text-2xl font-bold tracking-tight">{target.name}</div>
         </>
       ),
@@ -189,9 +187,7 @@ export function questionView(ctx: Ctx): View {
     prompt: picked ? (
       <Result target={target} wrong={wrong} />
     ) : (
-      <div className="text-2xl font-bold tracking-tight">
-        Wie heisst {target.kind === 'area' ? 'das orange Gebiet' : 'die orange Strasse'}?
-      </div>
+      <div className="text-2xl font-bold tracking-tight">{t.question.name(target.kind)}</div>
     ),
     // once answered the card shows the result, so the buttons make room for the map
     body: !picked && (
@@ -234,19 +230,19 @@ function introView({ round, desktop, focus, setFocus }: Ctx, q: Extract<Question
     prompt: (
       <>
         <div className="flex items-center gap-2 text-sm text-stone-500">
-          <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-bold text-orange-800">NEU</span>
-          Merk dir {n === 1 ? (q.items[0]!.item.kind === 'area' ? 'dieses Gebiet' : 'diese Strasse') : 'diese Strassen'}
+          <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-bold text-orange-800">
+            {t.intro.badge}
+          </span>
+          {t.intro.remember(n, q.items[0]!.item.kind)}
         </div>
-        <div className="text-2xl font-bold tracking-tight">
-          {n === 1 ? q.items[0]!.item.name : `${n} neue Strassen`}
-        </div>
+        <div className="text-2xl font-bold tracking-tight">{n === 1 ? q.items[0]!.item.name : t.intro.title(n)}</div>
       </>
     ),
     body: (
       <ListRows
         rows={q.items.map(({ item }) => ({
           title: item.name,
-          note: item.lengthM ? km(item.lengthM) : 'Gebiet',
+          note: item.lengthM ? t.intro.km(item.lengthM) : t.intro.area,
           color: TONE_COLOR.target,
         }))}
         focus={focus}
@@ -255,7 +251,7 @@ function introView({ round, desktop, focus, setFocus }: Ctx, q: Extract<Question
     ),
     action: (
       <Button tone="primary" onClick={round.next} autoFocus={desktop}>
-        Gemerkt – los geht’s {desktop && <Kbd>Enter</Kbd>}
+        {t.intro.go} {desktop && <Kbd>Enter</Kbd>}
       </Button>
     ),
   }
@@ -293,13 +289,9 @@ function summaryView({ round, overview, desktop, focus, setFocus }: Ctx): View {
     prompt: (
       <div className="flex items-center gap-3">
         <div className="flex-1">
-          <div className="text-sm text-stone-500">{practice ? 'Fehler korrigiert' : 'Runde fertig'}</div>
-          <div className="text-2xl font-bold tracking-tight">
-            {score} / {asked.length} richtig
-          </div>
-          {misses.length > 0 && (
-            <div className="text-xs text-stone-500">Fehler kommen in der nächsten Runde wieder.</div>
-          )}
+          <div className="text-sm text-stone-500">{practice ? t.summary.practiceDone : t.summary.roundDone}</div>
+          <div className="text-2xl font-bold tracking-tight">{t.summary.score(score, asked.length)}</div>
+          {misses.length > 0 && <div className="text-xs text-stone-500">{t.summary.missesBack}</div>}
         </div>
         {/* the snail cheers for a good round and keeps studying the map otherwise */}
         <img src={score >= asked.length * 0.7 ? snailCheer : snailMap} alt="" className="h-16 w-auto" />
@@ -309,17 +301,15 @@ function summaryView({ round, overview, desktop, focus, setFocus }: Ctx): View {
       misses.length > 0 ? (
         // on a portrait phone the list scrolls on its own, so the map keeps its room
         <div className="flex flex-col gap-1 portrait:max-h-[30dvh] portrait:overflow-y-auto">
-          <div className="text-xs font-semibold tracking-wider text-stone-500 uppercase">
-            Deine Fehler – antippen zum Zeigen
-          </div>
+          <div className="text-xs font-semibold tracking-wider text-stone-500 uppercase">{t.summary.missesTitle}</div>
           <ListRows
             rows={misses.map((q, i) => ({
               title: q.item.name,
               note:
                 q.kind === 'section'
-                  ? `Nr. ${sectionLabel(q.item.sections[q.section]!)}`
+                  ? t.question.nr(sectionLabel(q.item.sections[q.section]!))
                   : q.kind === 'start'
-                    ? `Nr. ${q.ends.from}`
+                    ? t.question.nr(q.ends.from)
                     : undefined,
               color: TONE_COLOR[tone(i)],
             }))}
@@ -328,21 +318,21 @@ function summaryView({ round, overview, desktop, focus, setFocus }: Ctx): View {
           />
         </div>
       ) : (
-        <div>Alles richtig – stark!</div>
+        <div>{t.summary.perfect}</div>
       ),
     action: (
       <div className="flex flex-col gap-2">
         {misses.length > 0 ? (
           <Button tone="primary" onClick={round.practiceMisses} autoFocus={desktop}>
-            Fehler korrigieren ({misses.length}) {desktop && <Kbd>Enter</Kbd>}
+            {t.summary.fixMisses(misses.length)} {desktop && <Kbd>Enter</Kbd>}
           </Button>
         ) : (
           <Button tone="primary" onClick={round.start} autoFocus={desktop}>
-            Neue Runde {desktop && <Kbd>Enter</Kbd>}
+            {t.summary.newRound} {desktop && <Kbd>Enter</Kbd>}
           </Button>
         )}
         <Button tone="plain" onClick={round.quit}>
-          <span className="flex-1 text-center">Fertig</span> {desktop && <Kbd>Esc</Kbd>}
+          <span className="flex-1 text-center">{t.summary.done}</span> {desktop && <Kbd>Esc</Kbd>}
         </Button>
       </div>
     ),
@@ -353,7 +343,7 @@ const rowTitle = (q: Exclude<Question, { kind: 'intro' }>) =>
   q.kind === 'section'
     ? `${q.item.name} ${sectionLabel(q.item.sections[q.section]!)}`
     : q.kind === 'start'
-      ? `${q.item.name} Nr. ${q.ends.from}`
+      ? `${q.item.name} ${t.question.nr(q.ends.from)}`
       : q.item.name
 
 /** Which route (src/data/routes.json) leads to what a question asks. */
@@ -367,14 +357,12 @@ function routeKey(q: Exclude<Question, { kind: 'intro' }>): string {
 const endLabels = ({ ends }: Item): Label[] =>
   ends
     ? [
-        { text: `Nr. ${ends.from}`, color: NEUTRAL, at: point(ends.low) },
-        { text: `Nr. ${ends.to}`, color: NEUTRAL, at: point(ends.high) },
+        { text: t.question.nr(ends.from), color: NEUTRAL, at: point(ends.low) },
+        { text: t.question.nr(ends.to), color: NEUTRAL, at: point(ends.high) },
       ]
     : []
 
 const point = (coordinates: LngLat): Point => ({ type: 'Point', coordinates })
-
-const km = (m: number) => `${(m / 1000).toFixed(1).replace('.', ',')} km`
 
 /** Room around a street so it shows in context (0.0025° ≈ 280 m; lng counts 1.5×, its degrees are shorter here). */
 function withMargin([w, s, e, n]: BBox, deg = 0.0025): BBox {

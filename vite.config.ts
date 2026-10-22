@@ -2,12 +2,14 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 import region from './region.json'
+import { messages } from './src/i18n'
 
-const title = `Strassen-Trainer ${region.name}`
+const page = messages[region.language].page
+const title = page.title(region.name)
 const manifest = JSON.stringify({
   name: title,
-  short_name: 'Strassen',
-  description: `Strassen und Hausnummern von ${region.name} lernen – für die Fahrer der ${region.brand}`,
+  short_name: page.shortName,
+  description: page.description(region.name, region.brand),
   lang: region.language,
   start_url: './',
   scope: './',
@@ -20,11 +22,15 @@ const manifest = JSON.stringify({
   ],
 })
 
-/** Fills index.html's %TITLE% / %LANG% and serves (dev) or emits (build) the web manifest, from region.json. */
+/** Fills index.html's %TITLE% / %SHORT_NAME% / %LANG% and serves (dev) or emits (build) the web manifest, from region.json. */
 function regionPage(): Plugin {
   return {
     name: 'region-page',
-    transformIndexHtml: (html) => html.replaceAll('%TITLE%', title).replaceAll('%LANG%', region.language),
+    transformIndexHtml: (html) =>
+      html
+        .replaceAll('%TITLE%', title)
+        .replaceAll('%SHORT_NAME%', page.shortName)
+        .replaceAll('%LANG%', region.language),
     configureServer(server) {
       server.middlewares.use('/manifest.webmanifest', (_req, res) => {
         res.setHeader('Content-Type', 'application/manifest+json')

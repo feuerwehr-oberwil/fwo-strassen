@@ -4,6 +4,7 @@ import snailMap from './assets/snail-map.webp'
 import { useBackup } from './backup'
 import town from './data/town.json'
 import { Home } from './Home'
+import { t } from './i18n'
 import { useProgress } from './progress'
 import { questionView, type MapView, type View } from './questionView'
 import { coreBBox } from './town'
@@ -79,8 +80,8 @@ export default function App() {
     <button
       ref={recentreButton}
       onClick={() => setRecentred((n) => n + 1)}
-      aria-label="Karte zurücksetzen"
-      title="Karte zurücksetzen"
+      aria-label={t.recentre}
+      title={t.recentre}
       className={`pointer-events-auto grid size-11 place-items-center rounded-xl bg-white text-stone-700 shadow-md ${className}`}
     >
       <svg
@@ -99,8 +100,8 @@ export default function App() {
   const quit = (
     <button
       onClick={round.quit}
-      aria-label="Runde beenden"
-      title="Runde beenden"
+      aria-label={t.quit}
+      title={t.quit}
       className="-m-2 grid size-11 shrink-0 place-items-center text-xl text-stone-500"
     >
       ✕
@@ -111,7 +112,7 @@ export default function App() {
       <img src={snailMap} alt="" className="h-14 w-auto" />
       <div>
         <div className="text-xs font-semibold tracking-wider text-red-600 uppercase">{region.brand}</div>
-        <div className="text-xl font-bold">Strassen-Trainer</div>
+        <div className="text-xl font-bold">{t.appName}</div>
       </div>
     </div>
   )
