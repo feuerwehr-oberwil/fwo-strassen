@@ -42,13 +42,12 @@ export const fr = {
     numbersHint: 'Tronçons des longues rues, sinon où est le n° 1',
     intro: 'Présenter les nouvelles rues',
     introHint: 'D’abord montrer, puis demander',
-    progress: (mode: string, withNumbers: boolean) => `Progrès · ${mode}${withNumbers ? ' avec numéros' : ''}`,
   },
   progress: {
     solid: (n: number) => `${n} acquis`,
     learning: (n: number) => `${n} en cours`,
     fresh: (n: number) => (n > 1 ? `${n} nouveaux` : `${n} nouveau`),
-    today: (n: number) => (n > 1 ? `${n} réponses aujourd’hui` : `${n} réponse aujourd’hui`),
+    today: (n: number) => `aujourd’hui ${n}`,
   },
   roundDots: (current: number, total: number, right: number) =>
     `Question ${current} sur ${total}, ${right} ${right > 1 ? 'justes' : 'juste'}`,
@@ -101,6 +100,8 @@ export const fr = {
   },
   backup: {
     title: 'Sauvegarder ta progression',
+    lineHint: 'nom + PIN',
+    close: 'Fermer',
     hint: 'Avec un nom et un PIN, continue sur chaque appareil. Toi seul connais le PIN.',
     name: 'Nom',
     pin: 'PIN (4 chiffres)',
