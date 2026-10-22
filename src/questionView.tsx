@@ -19,19 +19,22 @@ export type MapView = Omit<TownMapProps, 'town' | 'baseStyle' | 'padding' | 'ref
  */
 export type View = { map: MapView; prompt: ReactNode; tone?: 'ok' | 'bad'; body?: ReactNode; action?: ReactNode }
 
-/** `focus`: the list row tapped on an intro or summary screen, which the map zooms to. */
+/**
+ * `focus`: the list row tapped on an intro or summary screen, which the map zooms to. `keyboard`: a
+ * mouse is the main input, so buttons show their keys and the main one takes focus for Enter.
+ */
 type Ctx = {
   round: RoundApi & { round: Round }
   routes: Routes
   overview: BBox
-  desktop: boolean
+  keyboard: boolean
   focus: number | null
   setFocus: (i: number | null) => void
 }
 
 /** The screen for the current step (intro or question), or the summary once the round is done. */
 export function questionView(ctx: Ctx): View {
-  const { round, routes, desktop } = ctx
+  const { round, routes, keyboard } = ctx
   const q = round.question
   if (!q) return summaryView(ctx)
   if (q.kind === 'intro') return introView(ctx, q)
@@ -43,16 +46,16 @@ export function questionView(ctx: Ctx): View {
   const isLast = round.round.index === round.round.questions.length - 1
   const action =
     pick !== null ? (
-      <Button tone="primary" onClick={round.next} autoFocus={desktop}>
+      <Button tone="primary" onClick={round.next} autoFocus={keyboard}>
         {/* a right answer moves on by itself (useRound) */}
         {round.round.results.at(-1) && <Countdown ms={AUTO_NEXT_MS} />}
-        {isLast ? t.question.results : t.question.next} {desktop && <Kbd>Enter</Kbd>}
+        {isLast ? t.question.results : t.question.next} {keyboard && <Kbd>Enter</Kbd>}
       </Button>
     ) : (
       selection !== null && (
         // map questions: a tap only selects, «Prüfen» answers
-        <Button tone="primary" onClick={round.confirm} autoFocus={desktop}>
-          {t.question.check} {desktop && <Kbd>Enter</Kbd>}
+        <Button tone="primary" onClick={round.confirm} autoFocus={keyboard}>
+          {t.question.check} {keyboard && <Kbd>Enter</Kbd>}
         </Button>
       )
     )
@@ -194,7 +197,7 @@ export function questionView(ctx: Ctx): View {
       <div className="flex flex-col gap-2">
         {q.options.map((o, i) => (
           <Button key={o.id} onClick={() => round.answer(o.id)}>
-            {desktop && <Kbd>{i + 1}</Kbd>}
+            {keyboard && <Kbd>{i + 1}</Kbd>}
             {o.name}
           </Button>
         ))}
@@ -205,7 +208,7 @@ export function questionView(ctx: Ctx): View {
 }
 
 /** New streets of the round, all at once: numbered on the map and listed; a row zooms to its street. */
-function introView({ round, desktop, focus, setFocus }: Ctx, q: Extract<Question, { kind: 'intro' }>): View {
+function introView({ round, keyboard, focus, setFocus }: Ctx, q: Extract<Question, { kind: 'intro' }>): View {
   const focused = focus === null ? undefined : q.items[focus]
   const sections = focused?.withNumbers ? focused.item.sections : []
   const labels: Label[] = q.items.flatMap(({ item }, i) =>
@@ -250,14 +253,14 @@ function introView({ round, desktop, focus, setFocus }: Ctx, q: Extract<Question
       />
     ),
     action: (
-      <Button tone="primary" onClick={round.next} autoFocus={desktop}>
-        {t.intro.go} {desktop && <Kbd>Enter</Kbd>}
+      <Button tone="primary" onClick={round.next} autoFocus={keyboard}>
+        {t.intro.go} {keyboard && <Kbd>Enter</Kbd>}
       </Button>
     ),
   }
 }
 
-function summaryView({ round, overview, desktop, focus, setFocus }: Ctx): View {
+function summaryView({ round, overview, keyboard, focus, setFocus }: Ctx): View {
   const { questions, results, practice } = round.round
   const asked = questions.filter((q) => q.kind !== 'intro')
   const misses = questions.filter((_, i) => results[i] === false) as Exclude<Question, { kind: 'intro' }>[]
@@ -323,16 +326,16 @@ function summaryView({ round, overview, desktop, focus, setFocus }: Ctx): View {
     action: (
       <div className="flex flex-col gap-2">
         {misses.length > 0 ? (
-          <Button tone="primary" onClick={round.practiceMisses} autoFocus={desktop}>
-            {t.summary.fixMisses(misses.length)} {desktop && <Kbd>Enter</Kbd>}
+          <Button tone="primary" onClick={round.practiceMisses} autoFocus={keyboard}>
+            {t.summary.fixMisses(misses.length)} {keyboard && <Kbd>Enter</Kbd>}
           </Button>
         ) : (
-          <Button tone="primary" onClick={round.start} autoFocus={desktop}>
-            {t.summary.newRound} {desktop && <Kbd>Enter</Kbd>}
+          <Button tone="primary" onClick={round.start} autoFocus={keyboard}>
+            {t.summary.newRound} {keyboard && <Kbd>Enter</Kbd>}
           </Button>
         )}
         <Button tone="plain" onClick={round.quit}>
-          <span className="flex-1 text-center">{t.summary.done}</span> {desktop && <Kbd>Esc</Kbd>}
+          <span className="flex-1 text-center">{t.summary.done}</span> {keyboard && <Kbd>Esc</Kbd>}
         </Button>
       </div>
     ),
