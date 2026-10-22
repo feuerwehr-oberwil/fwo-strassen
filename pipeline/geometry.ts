@@ -64,6 +64,25 @@ export function linesDistance(a: Line[], b: Line[]): number {
   return min
 }
 
+/**
+ * Where `b` meets `a`: points where their segments cross, plus ends of `b` within `tolerance` of
+ * `a` (a T-junction). Ends of `a` near `b` don't count: there `a` only starts or stops.
+ */
+export function meetings(a: Line[], b: Line[], tolerance: number): XY[] {
+  const out: XY[] = []
+  const sa = segments(a)
+  for (const [r, s] of segments(b))
+    for (const [p, q] of sa) {
+      const d = (q[0] - p[0]) * (s[1] - r[1]) - (q[1] - p[1]) * (s[0] - r[0])
+      if (d === 0) continue // parallel: their ends are caught below if they touch
+      const t = ((r[0] - p[0]) * (s[1] - r[1]) - (r[1] - p[1]) * (s[0] - r[0])) / d
+      const u = ((r[0] - p[0]) * (q[1] - p[1]) - (r[1] - p[1]) * (q[0] - p[0])) / d
+      if (t >= 0 && t <= 1 && u >= 0 && u <= 1) out.push([p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])])
+    }
+  for (const end of b.flatMap((l) => [l[0]!, l.at(-1)!])) if (pointLinesDistance(end, a) <= tolerance) out.push(end)
+  return out
+}
+
 /** Whether `p` lies inside the polygon (even-odd over all rings). */
 export function inPolygon(p: XY, polygon: Polygon): boolean {
   let inside = false

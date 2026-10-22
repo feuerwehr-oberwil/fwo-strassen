@@ -30,7 +30,7 @@ export async function buildData(region: Region, { data, cache, steps }: Pipeline
   mkdirSync(data, { recursive: true })
 
   if (run('town')) {
-    const town = buildTown(await source.load(region, cache))
+    const town = buildTown(await source.load(region, cache), region.axes)
     await write(join(data, 'town.json'), JSON.stringify(town))
     console.log(townSummary(town))
   }

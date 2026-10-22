@@ -68,8 +68,8 @@ The CLI lives in `cli/`, runs from source with plain Node (type stripping) and s
 ## Region
 
 `region.json` sets the town up: name, brand, language, data source (swisstopo BFS number), the
-station's address and local route fixes (barriers OSM lacks, residential streets used as access
-roads). `strassen-trainer init` writes it; the data pipeline reads it, and `build` writes the page
+station's address, the Hauptachsen (`axes`: streets that cut long streets into house-number
+sections) and local route fixes (barriers OSM lacks, residential streets used as access roads). `strassen-trainer init` writes it; the data pipeline reads it, and `build` writes the page
 title, web manifest and `config.json` (name, brand, language – what the app shows) from it. The shape
 is the ArkType schema in `src/region.ts`; every command stops with a readable error when region.json
 doesn't match it.
@@ -115,7 +115,10 @@ pnpm test          # includes the pipeline and CLI tests
   geometry only as FileGDB or INTERLIS) and building addresses (CSV), all in LV95. A source returns
   raw data in a metric CRS (`pipeline/source.ts`), so other sources can plug in.
 - `pipeline/town.ts` builds the items: house-number sections for long streets, numbering ends for
-  shorter ones, cross streets, simplified WGS84 geometry.
+  shorter ones, cross streets, simplified WGS84 geometry. A long street is cut where a Hauptachse
+  from `axes` meets it, with the exact numbers on each side (Hohestrasse 118–133 between
+  Fürstenrain- and Allschwilerstrasse); one no Hauptachse crosses is split by address count into
+  round ranges. OSM's secondary and tertiary roads are a good first list.
 - `pipeline/routes.ts` routes the truck; `pipeline/basemap.ts` trims swisstopo's light base map.
 
 Routes are the fastest way for a TLF: only roads a truck can use, big access roads preferred, every

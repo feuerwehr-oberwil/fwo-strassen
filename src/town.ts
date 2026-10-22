@@ -74,7 +74,7 @@ export function coreBBox(items: Item[]): BBox {
 
 /**
  * Truck routes from the station (data/routes.json, written by pipeline/routes.ts), keyed
- * "<id>" for streets and areas, "<id>:<section>" for house-number sections and "<id>:start" for
+ * "<id>" for streets and areas, "<id>:<from>-<to>" for house-number sections and "<id>:start" for
  * the end where a shorter street's numbering starts.
  */
 export type Routes = Record<string, LngLat[]>
@@ -110,6 +110,11 @@ export function union(a: BBox, b: BBox): BBox {
 }
 
 export const sectionLabel = (s: Section) => `${s.from}–${s.to}`
+/**
+ * A section in question and route keys: its range, not its index, so a card or route never
+ * moves to another range when a street's sections change.
+ */
+export const sectionKey = (s: Section) => `${s.from}-${s.to}`
 
 /** Shortest distance between two items in metres (vertex to segment, good enough at town scale). */
 export function distanceM(a: Item, b: Item): number {

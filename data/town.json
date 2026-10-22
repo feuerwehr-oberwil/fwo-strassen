@@ -98,73 +98,55 @@
       "sections": [
         {
           "from": 1,
-          "to": 29,
-          "crossStreets": ["Sonnenweg", "Falterstrasse", "Bienenstrasse", "Schmiedengasse", "Libellenstrasse"],
+          "to": 57,
+          "crossStreets": [
+            "Sonnenweg",
+            "Falterstrasse",
+            "Bienenstrasse",
+            "Schmiedengasse",
+            "Baumgartenweg",
+            "Libellenstrasse",
+            "Hafenrainstrasse"
+          ],
           "geometry": {
             "type": "LineString",
             "coordinates": [
-              [7.55797, 47.51609],
+              [7.55789, 47.51615],
+              [7.55745, 47.51647],
               [7.55694, 47.51682],
-              [7.55591, 47.5173]
-            ]
-          }
-        },
-        {
-          "from": 30,
-          "to": 59,
-          "crossStreets": ["Baumgartenweg", "Nelkenweg", "Bündtenweg", "Hafenrainstrasse"],
-          "geometry": {
-            "type": "LineString",
-            "coordinates": [
-              [7.55591, 47.5173],
+              [7.55593, 47.51729],
               [7.55569, 47.51743],
               [7.55548, 47.51761],
               [7.55521, 47.51793],
-              [7.55497, 47.51832],
-              [7.5546, 47.51925],
-              [7.55456, 47.51934],
-              [7.55434, 47.51956]
+              [7.55504, 47.51819],
+              [7.55492, 47.51844],
+              [7.55469, 47.51907]
             ]
           }
         },
         {
-          "from": 60,
-          "to": 69,
-          "crossStreets": ["Hohestrasse"],
-          "geometry": {
-            "type": "MultiLineString",
-            "coordinates": [
-              [
-                [7.55434, 47.51956],
-                [7.55416, 47.51969],
-                [7.55388, 47.51985],
-                [7.5521, 47.52071],
-                [7.55117, 47.52119]
-              ],
-              [
-                [7.54448, 47.52505],
-                [7.54401, 47.52533]
-              ]
-            ]
-          }
-        },
-        {
-          "from": 70,
+          "from": 58,
           "to": 136,
-          "crossStreets": ["Weihergässli", "Im Spitz"],
+          "crossStreets": ["Bündtenweg", "Nelkenweg", "Hohestrasse", "Weihergässli", "Im Spitz"],
           "geometry": {
             "type": "MultiLineString",
             "coordinates": [
               [
-                [7.55117, 47.52119],
-                [7.54937, 47.52212],
-                [7.54854, 47.52257]
+                [7.55469, 47.51907],
+                [7.55456, 47.51934],
+                [7.55446, 47.51944],
+                [7.5543, 47.51959],
+                [7.55397, 47.51981],
+                [7.55164, 47.52094],
+                [7.54857, 47.52255]
               ],
               [
-                [7.54401, 47.52533],
-                [7.54382, 47.52549],
+                [7.54441, 47.52509],
+                [7.54404, 47.52531],
+                [7.54389, 47.52542],
+                [7.54375, 47.52557],
                 [7.54363, 47.52574],
-                [7.54354, 47.52594],
+                [7.54358, 47.52584],
                 [7.54346, 47.52624]
               ],
               [
@@ -701,7 +683,7 @@
       "sections": [
         {
           "from": 1,
-          "to": 29,
+          "to": 30,
           "crossStreets": ["Hummelweg", "Bündtenweg", "Fürstenrainstrasse"],
           "geometry": {
             "type": "LineString",
@@ -714,7 +696,7 @@
           }
         },
         {
-          "from": 30,
+          "from": 31,
           "to": 67,
           "crossStreets": [],
           "geometry": {
@@ -1254,12 +1236,12 @@
       "sections": [
         {
           "from": 1,
-          "to": 19,
+          "to": 18,
           "crossStreets": ["Neuwilerstrasse", "Lindenrain", "Neuhofweg"],
           "geometry": {
             "type": "LineString",
             "coordinates": [
-              [7.54929, 47.51492],
+              [7.54932, 47.515],
               [7.54943, 47.51521],
               [7.54956, 47.51534],
               [7.55147, 47.51656],
@@ -1269,15 +1251,15 @@
           }
         },
         {
-          "from": 20,
+          "from": 19,
           "to": 45,
-          "crossStreets": ["Hohlweg", "Föhrenstrasse", "Tichelengraben", "Buchenstrasse"],
+          "crossStreets": ["Föhrenstrasse", "Hohlweg", "Tichelengraben", "Neuwilerstrasse", "Buchenstrasse"],
           "geometry": {
             "type": "MultiLineString",
             "coordinates": [
               [
                 [7.549, 47.51411],
-                [7.54929, 47.51492]
+                [7.54932, 47.515]
               ],
               [
                 [7.549, 47.51411],
@@ -1330,16 +1312,14 @@
       "sections": [
         {
           "from": 1,
-          "to": 14,
-          "crossStreets": ["Hohlweg", "Neuwilerstrasse", "Brügglistrasse", "Lindenrain"],
+          "to": 6,
+          "crossStreets": ["Hohlweg", "Brügglistrasse"],
           "geometry": {
             "type": "MultiLineString",
             "coordinates": [
               [
                 [7.54774, 47.51438],
-                [7.54833, 47.51529],
-                [7.54862, 47.5157],
-                [7.54892, 47.51601]
+                [7.5483, 47.51524]
               ],
               [
                 [7.54742, 47.514],
@@ -1354,22 +1334,23 @@
           }
         },
         {
-          "from": 15,
+          "from": 7,
           "to": 40,
-          "crossStreets": ["Lindenrain", "Neuhofweg", "Hohlegasse"],
+          "crossStreets": ["Neuwilerstrasse", "Lindenrain", "Neuhofweg", "Hohlegasse"],
           "geometry": {
             "type": "LineString",
             "coordinates": [
-              [7.54892, 47.51601],
+              [7.5483, 47.51524],
+              [7.54862, 47.5157],
+              [7.54882, 47.51592],
               [7.54926, 47.51631],
-              [7.54945, 47.51644],
-              [7.54976, 47.51664],
+              [7.54956, 47.51652],
               [7.55003, 47.51679],
               [7.55076, 47.51709],
               [7.55088, 47.51716],
-              [7.55091, 47.51725],
-              [7.55089, 47.51731],
-              [7.55057, 47.51784]
+              [7.55091, 47.51722],
+              [7.55091, 47.51728],
+              [7.55068, 47.51766]
             ]
           }
         }
@@ -1871,34 +1852,41 @@
       "sections": [
         {
           "from": 1,
-          "to": 29,
-          "crossStreets": ["Spechtstrasse", "Fürstenrainstrasse", "Goldenthalweg", "Bündtenweg", "Hummelweg"],
+          "to": 17,
+          "crossStreets": ["Fürstenrainstrasse", "Goldenthalweg", "Bündtenweg", "Hummelweg"],
           "geometry": {
             "type": "LineString",
             "coordinates": [
-              [7.55945, 47.52154],
-              [7.55927, 47.52136],
-              [7.55863, 47.52082],
-              [7.55837, 47.52063],
-              [7.55759, 47.52013],
-              [7.55737, 47.51995],
-              [7.55579, 47.51809]
+              [7.55773, 47.52022],
+              [7.55753, 47.52008],
+              [7.55731, 47.51989],
+              [7.55559, 47.51786]
             ]
           }
         },
         {
-          "from": 30,
+          "from": 18,
           "to": 103,
-          "crossStreets": ["Stallenstrasse", "Bertschenackerstrasse", "Meisenstrasse", "Auf der Wacht"],
+          "crossStreets": [
+            "Stallenstrasse",
+            "Bertschenackerstrasse",
+            "Meisenstrasse",
+            "Auf der Wacht",
+            "Spechtstrasse"
+          ],
           "geometry": {
             "type": "LineString",
             "coordinates": [
-              [7.56203, 47.5252],
+              [7.56196, 47.5251],
               [7.56107, 47.52371],
               [7.56107, 47.52367],
               [7.56099, 47.52354],
               [7.56066, 47.52305],
-              [7.55945, 47.52154]
+              [7.5594, 47.52148],
+              [7.55927, 47.52136],
+              [7.55863, 47.52082],
+              [7.55837, 47.52063],
+              [7.55773, 47.52022]
             ]
           }
         }
@@ -2249,50 +2237,41 @@
       "sections": [
         {
           "from": 2,
-          "to": 109,
-          "crossStreets": ["Bertschenackerstrasse"],
+          "to": 117,
+          "crossStreets": ["Blacheweg", "Bertschenackerstrasse"],
           "geometry": {
             "type": "LineString",
             "coordinates": [
-              [7.55505, 47.52203],
+              [7.55454, 47.52136],
+              [7.55533, 47.52237],
               [7.55587, 47.52299],
-              [7.55645, 47.52374],
-              [7.55692, 47.52439],
-              [7.55721, 47.52483],
+              [7.5566, 47.52395],
+              [7.55725, 47.52489],
               [7.55729, 47.52492],
               [7.55729, 47.52501],
               [7.55733, 47.5251],
-              [7.55867, 47.52716]
+              [7.55867, 47.52715]
             ]
           }
         },
         {
-          "from": 110,
-          "to": 149,
-          "crossStreets": ["Allschwilerstrasse", "Fürstenrainstrasse", "Blacheweg"],
+          "from": 118,
+          "to": 133,
+          "crossStreets": ["Allschwilerstrasse", "Fürstenrainstrasse"],
           "geometry": {
             "type": "LineString",
             "coordinates": [
-              [7.55292, 47.51941],
-              [7.55325, 47.51992],
-              [7.55347, 47.52021],
-              [7.55436, 47.52115],
-              [7.55505, 47.52203]
+              [7.55337, 47.52008],
+              [7.55357, 47.52032],
+              [7.55423, 47.52101],
+              [7.55454, 47.52136]
             ]
           }
         },
         {
-          "from": 150,
-          "to": 189,
-          "crossStreets": [
-            "Im Thomasgarten",
-            "Hohlegasse",
-            "Im Senn",
-            "Neuhofweg",
-            "Buchenstrasse",
-            "Lindenrain",
-            "Im Güggelchrüz"
-          ],
+          "from": 134,
+          "to": 171,
+          "crossStreets": ["Im Senn", "Buchenstrasse", "Hohlegasse", "Im Thomasgarten", "Allschwilerstrasse"],
           "geometry": {
             "type": "MultiLineString",
             "coordinates": [
@@ -2302,21 +2281,18 @@
                 [7.55194, 47.5188],
                 [7.55209, 47.51882],
                 [7.55234, 47.51891],
-                [7.55251, 47.51901],
-                [7.55265, 47.51912],
+                [7.55258, 47.51907],
                 [7.55281, 47.51926],
-                [7.55292, 47.51941]
+                [7.55288, 47.51934],
+                [7.55337, 47.52008]
               ],
               [
-                [7.55136, 47.5186],
+                [7.55156, 47.51866],
                 [7.55087, 47.51841],
                 [7.55057, 47.51833],
                 [7.55043, 47.51827],
                 [7.55032, 47.5182],
-                [7.54962, 47.51794],
-                [7.54837, 47.51746],
-                [7.54762, 47.51706],
-                [7.54668, 47.51647]
+                [7.55014, 47.51814]
               ],
               [
                 [7.55156, 47.51866],
@@ -2326,36 +2302,38 @@
           }
         },
         {
-          "from": 190,
-          "to": 219,
-          "crossStreets": ["Neuwilerstrasse", "Hohlweg"],
+          "from": 172,
+          "to": 193,
+          "crossStreets": ["Im Senn", "Neuhofweg", "Lindenrain", "Im Güggelchrüz"],
           "geometry": {
             "type": "LineString",
             "coordinates": [
-              [7.54668, 47.51647],
-              [7.54636, 47.51626],
-              [7.546, 47.51598],
-              [7.54518, 47.5147],
-              [7.54503, 47.51443],
-              [7.54486, 47.51407]
+              [7.55014, 47.51814],
+              [7.54843, 47.51748],
+              [7.54817, 47.51735],
+              [7.5474, 47.51693],
+              [7.54648, 47.51634]
             ]
           }
         },
         {
-          "from": 220,
+          "from": 194,
           "to": 250,
-          "crossStreets": ["Blauenstrasse", "Eggfluhweg", "Friedhofweg"],
+          "crossStreets": ["Neuwilerstrasse", "Hohlweg", "Blauenstrasse", "Eggfluhweg", "Friedhofweg"],
           "geometry": {
             "type": "MultiLineString",
             "coordinates": [
               [
-                [7.54486, 47.51407],
+                [7.54648, 47.51634],
+                [7.546, 47.51598],
+                [7.54518, 47.5147],
+                [7.54503, 47.51443],
                 [7.54478, 47.51392],
                 [7.54464, 47.51372],
+                [7.54444, 47.51353],
                 [7.54429, 47.51341],
-                [7.54414, 47.51333],
-                [7.54386, 47.5132],
-                [7.54221, 47.51259]
+                [7.54395, 47.51323],
+                [7.54228, 47.51262]
               ],
               [
                 [7.54024, 47.5117],
@@ -2420,7 +2398,7 @@
       "sections": [
         {
           "from": 3,
-          "to": 24,
+          "to": 21,
           "crossStreets": ["Schmiedengasse", "Kirchgasse"],
           "geometry": {
             "type": "MultiLineString",
@@ -2431,8 +2409,7 @@
                 [7.55189, 47.51457]
               ],
               [
-                [7.55232, 47.51545],
-                [7.55244, 47.51511],
+                [7.55238, 47.51529],
                 [7.55257, 47.51467],
                 [7.55263, 47.51455]
               ],
@@ -2447,9 +2424,23 @@
           }
         },
         {
-          "from": 25,
+          "from": 22,
+          "to": 33,
+          "crossStreets": ["Neuwilerstrasse"],
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [7.55198, 47.51606],
+              [7.55207, 47.51585],
+              [7.55227, 47.51556],
+              [7.55238, 47.51529]
+            ]
+          }
+        },
+        {
+          "from": 34,
           "to": 57,
-          "crossStreets": ["Neuwilerstrasse", "Buchenstrasse", "Brügglistrasse"],
+          "crossStreets": ["Buchenstrasse", "Brügglistrasse"],
           "geometry": {
             "type": "MultiLineString",
             "coordinates": [
@@ -2457,10 +2448,7 @@
                 [7.55156, 47.51736],
                 [7.5517, 47.51703],
                 [7.55179, 47.51662],
-                [7.552, 47.51602],
-                [7.55207, 47.51585],
-                [7.55226, 47.51558],
-                [7.55232, 47.51545]
+                [7.55198, 47.51606]
               ],
               [
                 [7.55097, 47.51828],
@@ -2521,54 +2509,62 @@
       "sections": [
         {
           "from": 1,
-          "to": 24,
-          "crossStreets": ["Reservoirstrasse", "Brügglistrasse", "Schützenweg"],
+          "to": 15,
+          "crossStreets": [],
           "geometry": {
-            "type": "MultiLineString",
+            "type": "LineString",
             "coordinates": [
-              [
-                [7.54828, 47.51337],
-                [7.54855, 47.51331],
-                [7.54925, 47.51311],
-                [7.54945, 47.51308],
-                [7.55029, 47.51305],
-                [7.55143, 47.51294]
-              ],
-              [
-                [7.54741, 47.51349],
-                [7.54739, 47.5135],
-                [7.54743, 47.51391]
-              ]
+              [7.54969, 47.51306],
+              [7.55029, 47.51305],
+              [7.55129, 47.51296],
+              [7.55147, 47.51292]
             ]
           }
         },
         {
-          "from": 25,
-          "to": 53,
-          "crossStreets": ["Schützenweg", "Buchenstrasse", "Birkenstrasse"],
+          "from": 16,
+          "to": 44,
+          "crossStreets": ["Schützenweg", "Reservoirstrasse", "Brügglistrasse", "Buchenstrasse"],
           "geometry": {
             "type": "MultiLineString",
             "coordinates": [
               [
-                [7.54819, 47.51338],
-                [7.54828, 47.51337]
-              ],
-              [
-                [7.54743, 47.51391],
-                [7.5474, 47.5141],
-                [7.5473, 47.51427],
-                [7.54713, 47.51444],
-                [7.547, 47.51453],
-                [7.5468, 47.51464],
-                [7.54648, 47.51474],
-                [7.54565, 47.51491]
+                [7.54773, 47.51344],
+                [7.5479, 47.51343],
+                [7.54842, 47.51334],
+                [7.54934, 47.51309],
+                [7.54969, 47.51306]
               ],
               [
                 [7.54772, 47.51344],
                 [7.54772, 47.51315],
                 [7.54762, 47.51311],
                 [7.54736, 47.5131]
+              ],
+              [
+                [7.54771, 47.51344],
+                [7.54739, 47.5135],
+                [7.54743, 47.51387],
+                [7.5474, 47.5141],
+                [7.5473, 47.51427],
+                [7.54725, 47.51433],
+                [7.54713, 47.51444],
+                [7.54694, 47.51457]
               ]
+            ]
+          }
+        },
+        {
+          "from": 45,
+          "to": 53,
+          "crossStreets": ["Birkenstrasse"],
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [7.54694, 47.51457],
+              [7.5468, 47.51464],
+              [7.54648, 47.51474],
+              [7.54564, 47.51492]
             ]
           }
         }
@@ -3912,33 +3908,25 @@
       "sections": [
         {
           "from": 2,
-          "to": 24,
-          "crossStreets": ["Langmattstrasse"],
+          "to": 22,
+          "crossStreets": [],
           "geometry": {
-            "type": "MultiLineString",
+            "type": "LineString",
             "coordinates": [
-              [
-                [7.5557, 47.51148],
-                [7.55508, 47.50925]
-              ],
-              [
-                [7.55481, 47.50825],
-                [7.55499, 47.50891],
-                [7.55506, 47.50892],
-                [7.55509, 47.50897]
-              ]
+              [7.5557, 47.51148],
+              [7.55508, 47.50925]
             ]
           }
         },
         {
-          "from": 25,
+          "from": 23,
           "to": 50,
           "crossStreets": ["Grenzweg"],
           "geometry": {
             "type": "LineString",
             "coordinates": [
               [7.55422, 47.50605],
-              [7.55481, 47.50825]
+              [7.55497, 47.50884]
             ]
           }
         }
@@ -4094,8 +4082,8 @@
       "sections": [
         {
           "from": 4,
-          "to": 19,
-          "crossStreets": ["Hohlegasse"],
+          "to": 28,
+          "crossStreets": ["Rebgartenweg", "Hohlegasse"],
           "geometry": {
             "type": "MultiLineString",
             "coordinates": [
@@ -4110,6 +4098,11 @@
                 [7.55162, 47.51484]
               ],
               [
+                [7.54954, 47.51499],
+                [7.54979, 47.51501],
+                [7.55142, 47.51539]
+              ],
+              [
                 [7.55142, 47.51539],
                 [7.55177, 47.51547],
                 [7.55227, 47.51556]
@@ -4118,33 +4111,19 @@
           }
         },
         {
-          "from": 20,
-          "to": 34,
-          "crossStreets": ["Brügglistrasse", "Rebgartenweg"],
-          "geometry": {
-            "type": "LineString",
-            "coordinates": [
-              [7.54838, 47.51527],
-              [7.54932, 47.51501],
-              [7.5496, 47.51498],
-              [7.54979, 47.51501],
-              [7.55142, 47.51539]
-            ]
-          }
-        },
-        {
-          "from": 35,
+          "from": 29,
           "to": 58,
-          "crossStreets": ["Im Ropperhag", "Birkenstrasse", "Hohestrasse", "Buchenstrasse"],
+          "crossStreets": ["Birkenstrasse", "Hohestrasse", "Buchenstrasse", "Brügglistrasse"],
           "geometry": {
             "type": "LineString",
             "coordinates": [
-              [7.54339, 47.51721],
-              [7.54394, 47.51708],
+              [7.54419, 47.51698],
               [7.54477, 47.51674],
               [7.54595, 47.516],
               [7.54623, 47.5159],
-              [7.54838, 47.51527]
+              [7.54896, 47.5151],
+              [7.54932, 47.51501],
+              [7.54954, 47.51499]
             ]
           }
         }

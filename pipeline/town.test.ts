@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { XY } from './geometry.ts'
-import { houseNumber, numberingEnds, numberRanges, roundHalfEven, sectionCount, sectionGeometries } from './town.ts'
+import { meetings } from './geometry.ts'
+import {
+  axisRanges,
+  houseNumber,
+  numberingEnds,
+  numberRanges,
+  roundHalfEven,
+  sectionCount,
+  sectionGeometries,
+} from './town.ts'
 
 const xs = (values: number[], y: number) => values.map((x): XY => [x, y])
 
@@ -50,6 +59,77 @@ describe('section geometries', () => {
     const maxX = (piece: XY[][]) => Math.max(...piece.flat().map((p) => p[0]))
     expect(minX(a!)).toBeLessThan(minX(b!))
     expect(Math.abs(maxX(a!) - minX(b!))).toBeLessThan(1) // neighbours meet halfway
+  })
+})
+
+describe('Hauptachsen', () => {
+  const street: XY[] = [
+    [0, 0],
+    [1000, 0],
+  ]
+  // a Hauptachse crossing at x = 400; odd numbers on one side, even on the other
+  const axis: XY[] = [
+    [400, -100],
+    [400, 100],
+  ]
+  const houses = (from: number, to: number, x0: number) =>
+    Array.from({ length: to - from + 1 }, (_, i) => ({ n: from + i, at: [x0 + i * 20, i % 2 ? 8 : -8] as XY }))
+
+  it('meet a street where they cross or end on it, not where the street ends', () => {
+    expect(meetings([street], [axis], 3)).toEqual([[400, 0]])
+    expect(
+      meetings(
+        [street],
+        [
+          [
+            [400, 0],
+            [400, 100],
+          ],
+        ],
+        3,
+      ),
+    ).toEqual([
+      [400, 0],
+      [400, 0],
+    ]) // crossing + its end
+    expect(
+      meetings(
+        [street],
+        [
+          [
+            [1000, 0],
+            [1000, 100],
+          ],
+        ],
+        3,
+      ),
+    ).toEqual([
+      [1000, 0],
+      [1000, 0],
+    ])
+    expect(
+      meetings(
+        [street],
+        [
+          [
+            [1001, 50],
+            [1001, 100],
+          ],
+        ],
+        3,
+      ),
+    ).toEqual([])
+  })
+
+  it('cut the numbers where they cross, with exact borders', () => {
+    expect(axisRanges([street], [[400, 0]], [...houses(1, 19, 10), ...houses(20, 47, 420)])).toEqual([
+      [1, 19],
+      [20, 47],
+    ])
+  })
+
+  it('fold a stretch with few houses into its neighbour', () => {
+    expect(axisRanges([street], [[100, 0]], [...houses(1, 4, 10), ...houses(5, 40, 120)])).toBeNull()
   })
 })
 
