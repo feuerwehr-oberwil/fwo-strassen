@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import proj4 from 'proj4'
 import type { Geometry, Position } from 'geojson'
 import type { Region } from '../src/region.ts'
-import type { LngLat, Routes, Town } from '../src/town.ts'
+import { sectionKey, type LngLat, type Routes, type Town } from '../src/town.ts'
 import {
   bounds,
   distance,
@@ -321,13 +321,13 @@ export function buildRoutes(town: Town, osm: Osm, options: Options): RouteResult
     return { line, metres, substitute: !(named.length || on.length) }
   }
 
-  // keys: "<id>" for streets and areas, "<id>:<section>" for house-number sections and
+  // keys: "<id>" for streets and areas, "<id>:<from>-<to>" for house-number sections and
   // "<id>:start" for the end where a shorter street's numbering starts
   const targets: [key: string, geometry: Geometry, name: string | null][] = []
   for (const item of town.items) {
     const name = item.kind === 'street' ? item.name : null
     targets.push([item.id, item.geometry, name])
-    item.sections.forEach((s, i) => targets.push([`${item.id}:${i}`, s.geometry, name]))
+    item.sections.forEach((s) => targets.push([`${item.id}:${sectionKey(s)}`, s.geometry, name]))
     if (item.ends) targets.push([`${item.id}:start`, { type: 'Point', coordinates: item.ends.low }, name])
   }
   const result: RouteResult = { routes: new Map(), missing: [], substitute: [], lengths: new Map() }

@@ -5,7 +5,7 @@ import snailMap from './assets/snail-map.webp'
 import { t } from './i18n'
 import { NEUTRAL, SECTION_COLORS, TONE_COLOR, type Tone } from './palette'
 import type { Question } from './round'
-import { bboxOf, sectionLabel, union, type BBox, type Item, type LngLat, type Routes } from './town'
+import { bboxOf, sectionKey, sectionLabel, union, type BBox, type Item, type LngLat, type Routes } from './town'
 import { Countdown, ListRows, Result, Verdict } from './RoundParts'
 import type { Label, TownMapProps } from './TownMap'
 import { Button, Kbd } from './ui'
@@ -351,7 +351,7 @@ const rowTitle = (q: Exclude<Question, { kind: 'intro' }>) =>
 
 /** Which route (routes.json) leads to what a question asks. */
 function routeKey(q: Exclude<Question, { kind: 'intro' }>): string {
-  if (q.kind === 'section') return `${q.item.id}:${q.section}`
+  if (q.kind === 'section') return `${q.item.id}:${sectionKey(q.item.sections[q.section]!)}`
   if (q.kind === 'start') return `${q.item.id}:start`
   return q.item.id
 }

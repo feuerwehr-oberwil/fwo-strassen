@@ -16,6 +16,11 @@ export const Region = type({
   source: { type: "'swisstopo'", bfs: 'number.integer' },
   /** Address of the station: the only marker on the map and the start of every route. */
   station: { street: 'string', number: 'string' },
+  /**
+   * Hauptachsen by street name: long streets get their house-number sections cut where these meet
+   * them (e.g. Hohestrasse at Allschwilerstrasse). Without any, sections split by address count.
+   */
+  axes: type('string[]').default(() => []),
   /** Local knowledge OpenStreetMap lacks, applied to the truck routes. */
   fixes: {
     /** Closures missing in OSM ([lng, lat]); the nearest road node is closed. */

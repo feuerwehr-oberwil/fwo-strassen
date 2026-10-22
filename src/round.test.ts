@@ -93,12 +93,18 @@ describe('house numbers', () => {
   it('asks sections of long streets and where the numbering starts on shorter ones', () => {
     expect(roundKeys('find', [long, short, plain], true)).toEqual([
       'find:long',
-      'nr:long:0',
+      'nr:long:1-9',
       'find:short',
       'start:short',
       'find:plain',
     ])
     expect(roundKeys('find', [long, short, plain], false)).toEqual(['find:long', 'find:short', 'find:plain'])
+  })
+
+  it('finds a section by its range, so a re-split street never inherits old cards', () => {
+    const q = makeQuestion('nr:long:1-9', [long])
+    expect(q.kind === 'section' && q.section).toBe(0)
+    expect(makeQuestion('nr:long:0', [long]).kind).toBe('find') // an index key from before
   })
 
   it('counts the low end as the right answer to «Wo ist Nr. 1?»', () => {

@@ -1,9 +1,9 @@
 import type { Cards } from './progress'
-import { neighbours, type Item } from './town'
+import { neighbours, sectionKey, type Item } from './town'
 
 // A round is 10 questions picked by spaced repetition, then a summary. Streets that are new to
 // the user are first introduced (a few at a time, shown with their names) and then asked.
-// Question keys: "find:<id>" / "name:<id>" for streets and named areas, "nr:<id>:<section>" for
+// Question keys: "find:<id>" / "name:<id>" for streets and named areas, "nr:<id>:<from>-<to>" for
 // house-number sections of long streets and "start:<id>" for where a shorter street's numbering
 // starts (both shared by the two modes), "intro:<id>,<id>,…" for intros.
 
@@ -36,7 +36,7 @@ export function roundKeys(mode: Mode, items: Item[], withNumbers: boolean): stri
   return items.flatMap((i) => [`${mode}:${i.id}`, ...(withNumbers ? numberKeys(i) : [])])
 }
 
-const numberKeys = (i: Item) => (i.ends ? [`start:${i.id}`] : i.sections.map((_, s) => `nr:${i.id}:${s}`))
+const numberKeys = (i: Item) => (i.ends ? [`start:${i.id}`] : i.sections.map((s) => `nr:${i.id}:${sectionKey(s)}`))
 const isNumberKey = (k: string) => k.startsWith('nr:') || k.startsWith('start:')
 
 /**
@@ -104,7 +104,8 @@ export function makeQuestion(key: string, items: Item[]): Question {
   if (kind === 'intro')
     return { kind: 'intro', key, items: id!.split(',').map((i) => ({ item: byId(i), withNumbers: false })) }
   const item = byId(id!)
-  if (kind === 'nr') return { kind: 'section', key, item, section: Number(section) }
+  const s = kind === 'nr' ? item.sections.findIndex((x) => sectionKey(x) === section) : -1
+  if (s >= 0) return { kind: 'section', key, item, section: s }
   if (kind === 'start' && item.ends) return { kind: 'start', key, item, ends: item.ends }
   if (kind === 'name') return { kind: 'name', key, item, options: shuffle([item, ...neighbours(item, items, 3)]) }
   return { kind: 'find', key, item }

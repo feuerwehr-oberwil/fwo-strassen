@@ -82,6 +82,7 @@ export function newRegion(
     language,
     source: { type: 'swisstopo', bfs: municipality.bfs },
     station,
+    axes: [],
     fixes: { barriers: [], accessRoads: [] },
   }
 }

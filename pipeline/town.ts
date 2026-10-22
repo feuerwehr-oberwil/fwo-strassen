@@ -5,9 +5,12 @@ import {
   areaPoint,
   bounds,
   centroid,
+  distance,
+  interpolate,
   lineLength,
   linePoint,
   linesDistance,
+  meetings,
   pointLinesDistance,
   project,
   simplify,
@@ -19,11 +22,14 @@ import {
 import type { SourceData } from './source.ts'
 
 // Builds data/town.json from a source's streets, areas and addresses: house-number sections
-// for long streets, numbering ends for shorter ones, cross streets, simplified WGS84 geometry.
+// for long streets (cut where a Hauptachse meets them, else by address count), numbering ends
+// for shorter ones, cross streets, simplified WGS84 geometry.
 
 const LONG_STREET_M = 500 // streets longer than this get house-number sections
 const ENDS_MIN_ADDRESSES = 4 // shorter streets need this many addresses to tell where numbering starts
 const ENDS_MIN_CORR = 0.8 // …and numbers that clearly grow from one end to the other (rank correlation)
+const AXIS_MEET_M = 3 // a Hauptachse this close to a street meets it
+const AXIS_MIN_NUMBERS = 8 // a stretch between two Hauptachsen needs this many house numbers to be its own section
 
 /** Python's round(): halves go to the even neighbour, so 25 / 10 rounds to 2. */
 export const roundHalfEven = (x: number) => {
@@ -57,6 +63,87 @@ export function numberRanges(numbers: number[], k: number): [from: number, to: n
   return lows
     .map((lo, i): [number, number] => [lo, highs[i]!])
     .filter(([lo, hi]) => nums.some((n) => lo <= n && n <= hi))
+}
+
+/**
+ * House-number ranges for a long street cut where Hauptachsen meet it (`cuts`).
+ *
+ * Addresses between two cuts form a stretch. Stretches are ordered by their median number, and
+ * ones with fewer than AXIS_MIN_NUMBERS different numbers (an apartment block has several
+ * addresses with one) join the neighbour closest in numbers. Each border is
+ * the number where most addresses switch to the next stretch, not a round one: it marks the
+ * Hauptachse. Null when fewer than two stretches are left, so the street keeps numberRanges.
+ */
+export function axisRanges(
+  lines: Line[],
+  cuts: XY[],
+  addresses: { n: number; at: XY }[],
+): [from: number, to: number][] | null {
+  // each line part cut at the Hauptachsen meeting it; pieces of different parts that touch away
+  // from a cut (a branch, a gap in the data) belong to the same stretch
+  const cutsAlong = lines.map((l) =>
+    cuts
+      .filter((c) => pointLinesDistance(c, [l]) <= AXIS_MEET_M)
+      .map((c) => project(l, c))
+      .toSorted((a, b) => a - b),
+  )
+  const pieces = lines.flatMap((l, i) => {
+    const at = [0, ...cutsAlong[i]!, lineLength(l)]
+    return at.slice(1).map((end, k) => ({ part: i, k, ends: [interpolate(l, at[k]!), interpolate(l, end)] }))
+  })
+  const stretchOf = pieces.map((_, i) => i)
+  const find = (i: number): number => (stretchOf[i] === i ? i : (stretchOf[i] = find(stretchOf[i]!)))
+  const atCut = (p: XY) => cuts.some((c) => distance(c, p) <= AXIS_MEET_M)
+  pieces.forEach((a, i) =>
+    pieces.forEach((b, j) => {
+      if (a.part === b.part) return
+      const touch = a.ends.some((p) => !atCut(p) && b.ends.some((q) => distance(p, q) <= AXIS_MEET_M))
+      if (touch) stretchOf[find(i)] = find(j)
+    }),
+  )
+  const stretch = ({ at }: { at: XY }) => {
+    const distances = lines.map((l) => pointLinesDistance(at, [l]))
+    const i = distances.indexOf(Math.min(...distances))
+    const k = cutsAlong[i]!.filter((c) => c < project(lines[i]!, at)).length
+    return find(pieces.findIndex((p) => p.part === i && p.k === k))
+  }
+  const median = (g: number[]) => g[Math.floor(g.length / 2)]!
+  const groups = [...Map.groupBy(addresses, stretch).values()]
+    .map((g) => g.map((a) => a.n).toSorted((a, b) => a - b))
+    .toSorted((a, b) => median(a) - median(b))
+  const merge = (i: number, j: number) => {
+    groups[Math.min(i, j)] = [...groups[i]!, ...groups[j]!].toSorted((a, b) => a - b)
+    groups.splice(Math.max(i, j), 1)
+  }
+  while (groups.length > 1) {
+    const i = groups.findIndex((g) => new Set(g).size < AXIS_MIN_NUMBERS)
+    if (i < 0) break
+    const gap = (j: number) => (groups[j] ? Math.abs(median(groups[j]) - median(groups[i]!)) : Infinity)
+    merge(i, gap(i - 1) <= gap(i + 1) ? i - 1 : i + 1)
+  }
+  // the border before groups[k]: the number of it that misplaces the fewest addresses
+  const border = (k: number) => {
+    const [low, high] = [groups[k - 1]!, groups[k]!]
+    const misplaced = (b: number) => low.filter((n) => n >= b).length + high.filter((n) => n < b).length
+    return high.reduce((best, b) => (misplaced(b) < misplaced(best) ? b : best))
+  }
+  const borders: number[] = []
+  for (let k = 1; k < groups.length;) {
+    const b = border(k)
+    // stretches whose numbers interleave (two branches, one numbering) become one
+    if (b <= (borders.at(-1) ?? -Infinity) || b <= groups[k - 1]![0]!) {
+      merge(k - 1, k)
+      borders.length = 0
+      k = 1
+    } else {
+      borders.push(b)
+      k++
+    }
+  }
+  if (groups.length < 2) return null
+  const lows = [groups[0]![0]!, ...borders]
+  const highs = [...borders.map((b) => b - 1), groups.at(-1)!.at(-1)!]
+  return lows.map((lo, i) => [lo, highs[i]!])
 }
 
 /**
@@ -161,8 +248,14 @@ export function crossStreets(section: Line[], ownId: string, streets: SourceData
   return [...new Set(found.map((s) => s.name))]
 }
 
-/** The town as the app loads it (data/town.json), from a source's raw data. */
-export function buildTown(data: SourceData): Town {
+/**
+ * The town as the app loads it (data/town.json), from a source's raw data. `axes`: the
+ * Hauptachsen from region.json, by street name; long streets are cut where they meet them.
+ */
+export function buildTown(data: SourceData, axes: readonly string[] = []): Town {
+  const missing = axes.filter((name) => !data.streets.some((s) => s.name === name))
+  if (missing.length) throw new Error(`region.json axes: no street ${missing.map((n) => `«${n}»`).join(', ')}`)
+  const axisStreets = data.streets.filter((s) => axes.includes(s.name))
   const toWgs84 = proj4(data.crs, 'WGS84')
   const round5 = (v: number) => Number(v.toFixed(5))
   const lngLat = (p: XY): LngLat => {
@@ -202,10 +295,15 @@ export function buildTown(data: SourceData): Town {
     const sections: Section[] = []
     const k = lengthM > LONG_STREET_M ? sectionCount(lengthM, addresses.length) : 0
     if (k) {
-      const ranges = numberRanges(
-        addresses.map((a) => a.n),
-        k,
-      )
+      const cuts = axisStreets
+        .filter((a) => a.name !== street.name)
+        .flatMap((a) => meetings(street.lines, a.lines, AXIS_MEET_M))
+      const ranges =
+        (cuts.length ? axisRanges(street.lines, cuts, addresses) : null) ??
+        numberRanges(
+          addresses.map((a) => a.n),
+          k,
+        )
       const groups = ranges.map(([lo, hi]) => addresses.filter((a) => lo <= a.n && a.n <= hi).map((a) => a.at))
       sectionGeometries(street.lines, groups).forEach((piece, i) => {
         if (!piece.length) return

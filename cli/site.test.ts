@@ -11,6 +11,7 @@ const region: Region = {
   language: 'fr',
   source: { type: 'swisstopo', bfs: 2765 },
   station: { street: 'Hauptstrasse', number: '1' },
+  axes: [],
   fixes: { barriers: [], accessRoads: [] },
 }
 
