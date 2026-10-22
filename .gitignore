@@ -23,11 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# data pipeline
-data/cache
-data/.venv
-__pycache__
-.pytest_cache
+# data pipeline downloads
+pipeline/cache
 
 # backup server
 server/.venv

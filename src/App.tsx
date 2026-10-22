@@ -117,7 +117,7 @@ export default function App() {
     </div>
   )
   const home = <Home round={round} progress={progress} backup={backup} desktop={wide} />
-  // map from swisstopo, truck routes from OpenStreetMap (data/routes.py)
+  // map from swisstopo, truck routes from OpenStreetMap (pipeline/routes.ts)
   const credit = (
     <span className="pointer-events-auto self-end rounded bg-white/80 px-1 text-[10px] text-stone-500">
       <a href="https://www.swisstopo.admin.ch" target="_blank" rel="noreferrer">

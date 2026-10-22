@@ -1,7 +1,6 @@
 import type { Geometry, LineString, MultiLineString, Position } from 'geojson'
-import region from '../region.json'
 
-// Shape of src/data/town.json, written by data/build.py.
+// Shape of src/data/town.json, written by pipeline/town.ts.
 export type LngLat = [lng: number, lat: number]
 export type BBox = [west: number, south: number, east: number, north: number]
 
@@ -39,11 +38,9 @@ export type Town = {
   station: LngLat
 }
 
-/** Items in learning order: long streets first, named areas last. */
-export function byImportance(items: Item[]): Item[] {
-  return items.toSorted(
-    (a, b) => (b.lengthM ?? -1) - (a.lengthM ?? -1) || a.name.localeCompare(b.name, region.language),
-  )
+/** Items in learning order: long streets first, named areas last; ties by name in `locale`. */
+export function byImportance(items: Item[], locale: string): Item[] {
+  return items.toSorted((a, b) => (b.lengthM ?? -1) - (a.lengthM ?? -1) || a.name.localeCompare(b.name, locale))
 }
 
 /** The `n` items of the same kind closest to `item` – plausible wrong answers. */
@@ -76,7 +73,7 @@ export function coreBBox(items: Item[]): BBox {
 }
 
 /**
- * Truck routes from the Feuerwehrmagazin (src/data/routes.json, written by data/routes.py), keyed
+ * Truck routes from the station (src/data/routes.json, written by pipeline/routes.ts), keyed
  * "<id>" for streets and areas, "<id>:<section>" for house-number sections and "<id>:start" for
  * the end where a shorter street's numbering starts.
  */
