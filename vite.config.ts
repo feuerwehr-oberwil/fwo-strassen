@@ -2,7 +2,7 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 import region from './region.json'
-import { messages } from './src/i18n/messages'
+import { messages } from './src/i18n'
 
 const page = messages[region.language].page
 const title = page.title(region.name)
@@ -46,8 +46,6 @@ function regionPage(): Plugin {
 // Relative base so the build works under any GitHub Pages path.
 export default defineConfig({
   base: './',
-  // the app's language (src/i18n), so only that dictionary is bundled
-  define: { __LANGUAGE__: JSON.stringify(region.language) },
   plugins: [react(), tailwindcss(), regionPage()],
   // maplibre alone is ~1 MB, the town data and truck routes ~200 KB (routes gzip to ~5 KB);
   // one chunk is fine for a single-screen app

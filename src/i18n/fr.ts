@@ -35,7 +35,7 @@ export const fr = {
       name: { label: 'Nommer', hint: 'Carte → nom' },
     },
     numbers: 'Numéros',
-    numbersHint: 'Tronçons des longues rues, sinon où est le n 1',
+    numbersHint: 'Tronçons des longues rues, sinon où est le n° 1',
     intro: 'Présenter les nouvelles rues',
     introHint: 'D’abord montrer, puis demander',
     progress: (mode: string, withNumbers: boolean) => `Progrès · ${mode}${withNumbers ? ' avec numéros' : ''}`,
