@@ -1,26 +1,24 @@
 import { useState } from 'react'
 import type { Backup } from './backup'
 import { BackupPanel } from './BackupPanel'
+import { t } from './i18n'
 import { InstallHint } from './InstallHint'
 import { progressCounts, type Progress } from './progress'
-import type { Mode } from './round'
+import { ROUND_SIZE, type Mode } from './round'
 import { Button, Kbd, ProgressBar, Switch } from './ui'
 import type { RoundApi } from './useRound'
 
+/** The modes in button order; their labels and hints live in `t.home.modes`. */
 export const MODES = [
   {
     value: 'find',
-    label: 'Finden',
-    hint: 'Name → Karte',
     icon: 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
   },
   {
     value: 'name',
-    label: 'Benennen',
-    hint: 'Karte → Name',
     icon: 'M3 12V4h8l10 10-8 8zM7.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
   },
-] as const satisfies readonly { value: Mode; label: string; hint: string; icon: string }[]
+] as const satisfies readonly { value: Mode; icon: string }[]
 
 /**
  * Start screen: in iOS Safari a tip to install the app, what the next round brings, the «Runde starten» button, mode and options, and the
@@ -41,29 +39,21 @@ export function Home({
   const counts = progressCounts(round.keys, progress.cards)
   const [now] = useState(Date.now) // the start screen is fresh after every round
   const due = round.keys.filter((k) => (progress.cards[k]?.due ?? Infinity) <= now).length
-  const headline =
-    due > 0
-      ? `${due} ${due === 1 ? 'Wiederholung' : 'Wiederholungen'} fällig`
-      : counts.fresh > 0
-        ? 'Neue Strassen lernen'
-        : 'Alles gelernt'
-  const modeLabel = MODES.find((m) => m.value === mode)!.label
+  const headline = due > 0 ? t.home.due(due) : counts.fresh > 0 ? t.home.learnNew : t.home.allLearned
 
   return (
     <div className="flex flex-col gap-4">
       <InstallHint />
       <section className="rounded-2xl bg-white p-4 shadow-sm">
-        <div className="text-sm text-stone-500">Nächste Runde</div>
+        <div className="text-sm text-stone-500">{t.home.nextRound}</div>
         <div className="text-2xl font-bold tracking-tight">{headline}</div>
-        <div className="mb-3 text-sm text-stone-600">
-          10 Fragen{due > 0 && counts.fresh > 0 ? ', dazu neue Strassen' : ''}
-        </div>
+        <div className="mb-3 text-sm text-stone-600">{t.home.questions(ROUND_SIZE, due > 0 && counts.fresh > 0)}</div>
         <Button tone="primary" onClick={round.start} autoFocus={desktop}>
-          Runde starten {desktop && <Kbd>Enter</Kbd>}
+          {t.home.start} {desktop && <Kbd>Enter</Kbd>}
         </Button>
       </section>
 
-      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Modus">
+      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t.home.mode}>
         {MODES.map((m) => (
           <button
             key={m.value}
@@ -86,8 +76,8 @@ export function Home({
             >
               <path d={m.icon} />
             </svg>
-            <span className="font-bold">{m.label}</span>
-            <span className="text-xs text-stone-500">{m.hint}</span>
+            <span className="font-bold">{t.home.modes[m.value].label}</span>
+            <span className="text-xs text-stone-500">{t.home.modes[m.value].hint}</span>
           </button>
         ))}
       </div>
@@ -95,25 +85,20 @@ export function Home({
       <section className="flex flex-col rounded-2xl bg-white px-4 py-1 shadow-sm">
         <Switch checked={withNumbers} onChange={(withNumbers) => round.configure({ withNumbers })} wide>
           <span className="text-left">
-            <span className="block text-sm font-semibold">Hausnummern</span>
-            <span className="block text-xs text-stone-500">
-              Abschnitte langer Strassen, bei kürzeren wo Nr. 1 liegt
-            </span>
+            <span className="block text-sm font-semibold">{t.home.numbers}</span>
+            <span className="block text-xs text-stone-500">{t.home.numbersHint}</span>
           </span>
         </Switch>
         <Switch checked={intro} onChange={(intro) => round.configure({ intro })} wide>
           <span className="text-left">
-            <span className="block text-sm font-semibold">Neue Strassen vorstellen</span>
-            <span className="block text-xs text-stone-500">Zuerst zeigen, dann abfragen</span>
+            <span className="block text-sm font-semibold">{t.home.intro}</span>
+            <span className="block text-xs text-stone-500">{t.home.introHint}</span>
           </span>
         </Switch>
       </section>
 
       <section className="flex flex-col gap-2 rounded-2xl bg-white p-4 shadow-sm">
-        <div className="text-sm font-semibold">
-          Fortschritt · {modeLabel}
-          {withNumbers && ' mit Hausnummern'}
-        </div>
+        <div className="text-sm font-semibold">{t.home.progress(t.home.modes[mode].label, withNumbers)}</div>
         <ProgressBar today={progress.today} {...counts} />
       </section>
 

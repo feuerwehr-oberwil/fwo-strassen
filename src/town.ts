@@ -1,4 +1,5 @@
 import type { Geometry, LineString, MultiLineString, Position } from 'geojson'
+import region from '../region.json'
 
 // Shape of src/data/town.json, written by data/build.py.
 export type LngLat = [lng: number, lat: number]
@@ -40,7 +41,9 @@ export type Town = {
 
 /** Items in learning order: long streets first, named areas last. */
 export function byImportance(items: Item[]): Item[] {
-  return items.toSorted((a, b) => (b.lengthM ?? -1) - (a.lengthM ?? -1) || a.name.localeCompare(b.name, 'de'))
+  return items.toSorted(
+    (a, b) => (b.lengthM ?? -1) - (a.lengthM ?? -1) || a.name.localeCompare(b.name, region.language),
+  )
 }
 
 /** The `n` items of the same kind closest to `item` – plausible wrong answers. */

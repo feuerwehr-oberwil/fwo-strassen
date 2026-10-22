@@ -12,6 +12,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef, useState } from 'react'
 import basemap from './data/basemap.json'
+import { t } from './i18n'
 import { ROUTE_COLOR, TONE_COLOR, TRUCK_COLOR, type Tone } from './palette'
 import { cutLine, segmentDistance, type BBox, type LngLat, type Town } from './town'
 
@@ -271,7 +272,7 @@ export function TownMap({
       {status !== 'ready' && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center" role="status">
           <span className="rounded-full bg-white/90 px-4 py-2 text-sm text-stone-700 shadow">
-            {status === 'loading' ? 'Karte lädt …' : 'Karte konnte nicht laden – Verbindung prüfen.'}
+            {status === 'loading' ? t.map.loading : t.map.failed}
           </span>
         </div>
       )}
@@ -516,7 +517,7 @@ function declutter(m: MapLibre, markers: Marker[], pad: Padding) {
 /** The Feuerwehrmagazin: a red dot with a white flame, as the one fixed point of reference. */
 function stationElement(): HTMLElement {
   const el = document.createElement('div')
-  el.title = 'Feuerwehrmagazin'
+  el.title = t.map.station
   el.className =
     'pointer-events-none grid size-7 place-items-center rounded-full bg-red-600 shadow-md ring-2 ring-white'
   el.innerHTML =

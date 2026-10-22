@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { t } from './i18n'
 
 export function Button({
   children,
@@ -61,7 +62,7 @@ export function Switch({
 
 /** One bar per question of the round: green right, red wrong, dark = current. */
 export function RoundDots({ results, total }: { results: boolean[]; total: number }) {
-  const label = `Frage ${Math.min(results.length + 1, total)} von ${total}, ${results.filter(Boolean).length} richtig`
+  const label = t.roundDots(Math.min(results.length + 1, total), total, results.filter(Boolean).length)
   return (
     <div className="flex gap-1" role="img" aria-label={label}>
       {Array.from({ length: total }, (_, i) => (
@@ -103,10 +104,10 @@ export function ProgressBar({
         <div className="bg-amber-400" style={{ width: pct(learning) }} />
       </div>
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-stone-500">
-        <Legend color="bg-green-600">{solid} sicher</Legend>
-        <Legend color="bg-amber-400">{learning} am Lernen</Legend>
-        <Legend color="bg-stone-300">{fresh} neu</Legend>
-        <span className="ml-auto">heute {today} beantwortet</span>
+        <Legend color="bg-green-600">{t.progress.solid(solid)}</Legend>
+        <Legend color="bg-amber-400">{t.progress.learning(learning)}</Legend>
+        <Legend color="bg-stone-300">{t.progress.fresh(fresh)}</Legend>
+        <span className="ml-auto">{t.progress.today(today)}</span>
       </div>
     </div>
   )

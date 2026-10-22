@@ -1,12 +1,6 @@
 import { useState } from 'react'
 import type { Backup } from './backup'
-
-const STATUS = {
-  off: '',
-  saving: 'wird gesichert …',
-  saved: 'gesichert ✓',
-  offline: 'offline – wird später gesichert',
-} as const
+import { t } from './i18n'
 
 /** Shows the device's backup code and lets you continue with another device's code. */
 export function BackupPanel({ backup }: { backup: Backup }) {
@@ -27,14 +21,14 @@ export function BackupPanel({ backup }: { backup: Backup }) {
   return (
     <div className="flex flex-col gap-1.5 text-xs text-stone-600">
       <div className="flex flex-wrap items-center gap-x-2">
-        <span>Dein Code:</span>
+        <span>{t.backup.yourCode}</span>
         <code className="rounded bg-stone-100 px-1.5 py-0.5 font-semibold text-stone-800 select-all">
           {backup.code}
         </code>
-        <span>{STATUS[backup.status]}</span>
+        <span>{t.backup.status[backup.status]}</span>
         {!open && (
           <button className="ml-auto min-h-11 underline" onClick={() => setOpen(true)}>
-            Anderen Code eingeben
+            {t.backup.enterOther}
           </button>
         )}
       </div>
@@ -47,7 +41,7 @@ export function BackupPanel({ backup }: { backup: Backup }) {
           }}
         >
           <label htmlFor="backup-code" className="sr-only">
-            Code vom anderen Gerät
+            {t.backup.otherLabel}
           </label>
           <input
             id="backup-code"
@@ -63,13 +57,13 @@ export function BackupPanel({ backup }: { backup: Backup }) {
             className="min-h-11 min-w-0 flex-1 rounded-lg border border-stone-300 px-2 text-base text-stone-900"
           />
           <button type="submit" className="min-h-11 rounded-lg bg-stone-900 px-3 text-sm font-semibold text-white">
-            Laden
+            {t.backup.load}
           </button>
           <button
             type="button"
             onClick={() => setOpen(false)}
             className="min-h-11 min-w-11 text-sm"
-            aria-label="Schliessen"
+            aria-label={t.backup.close}
           >
             ✕
           </button>
@@ -77,7 +71,7 @@ export function BackupPanel({ backup }: { backup: Backup }) {
       )}
       {open && (
         <div id="backup-help" role={error ? 'alert' : undefined} className={error ? 'text-red-700' : undefined}>
-          {error ?? 'Den Code findest du auf dem anderen Gerät hier unten. Beide Fortschritte werden zusammengeführt.'}
+          {error ?? t.backup.help}
         </div>
       )}
     </div>

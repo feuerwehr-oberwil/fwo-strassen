@@ -1,3 +1,4 @@
+import { t } from './i18n'
 import { useStoredState } from './progress'
 
 // iOS Safari never hides its toolbar on a page that doesn't scroll, and no web API can hide it.
@@ -15,15 +16,14 @@ export function InstallHint() {
         <ShareIcon className="size-5" />
       </div>
       <div className="flex-1 pr-6">
-        <div className="font-bold">Als App öffnen – mehr Platz für die Karte</div>
+        <div className="font-bold">{t.install.title}</div>
         <div className="text-sm text-stone-600">
-          Tippe in Safari auf Teilen <ShareIcon className="inline size-4 align-[-3px]" /> und dann auf «Zum
-          Home-Bildschirm». Dann fällt die Safari-Leiste weg.
+          {t.install.before} <ShareIcon className="inline size-4 align-[-3px]" /> {t.install.after}
         </div>
       </div>
       <button
         onClick={() => setDismissed(true)}
-        aria-label="Hinweis ausblenden"
+        aria-label={t.install.dismiss}
         className="absolute top-1.5 right-1.5 grid size-9 place-items-center text-stone-400"
       >
         ✕
