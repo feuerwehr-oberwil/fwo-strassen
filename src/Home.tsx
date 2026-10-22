@@ -28,12 +28,12 @@ export function Home({
   round,
   progress,
   backup,
-  desktop,
+  keyboard,
 }: {
   round: RoundApi
   progress: Progress
   backup: Backup
-  desktop: boolean
+  keyboard: boolean
 }) {
   const { mode, withNumbers, intro } = round.settings
   const counts = progressCounts(round.keys, progress.cards)
@@ -48,8 +48,8 @@ export function Home({
         <div className="text-sm text-stone-500">{t.home.nextRound}</div>
         <div className="text-2xl font-bold tracking-tight">{headline}</div>
         <div className="mb-3 text-sm text-stone-600">{t.home.questions(ROUND_SIZE, due > 0 && counts.fresh > 0)}</div>
-        <Button tone="primary" onClick={round.start} autoFocus={desktop}>
-          {t.home.start} {desktop && <Kbd>Enter</Kbd>}
+        <Button tone="primary" onClick={round.start} autoFocus={keyboard}>
+          {t.home.start} {keyboard && <Kbd>Enter</Kbd>}
         </Button>
       </section>
 
