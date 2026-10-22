@@ -4,7 +4,7 @@ Run from this directory: `uv run basemap.py`. Re-run when swisstopo updates its 
 
 Compared to the original style this drops the relief source, every label and pattern layer (so
 no fonts or sprites are fetched), inlines the tile URLs (no tiles.json round trip) and limits the
-source to the Oberwil area, so the map never requests tiles outside town.
+source to the town area, so the map never requests tiles outside town.
 """
 
 import gzip
@@ -30,8 +30,9 @@ def main() -> None:
     style = get(STYLE)
     base_id, base = next((k, v) for k, v in style["sources"].items() if k.startswith("base"))
     tilejson = get(base["url"])
-    town = json.loads((HERE.parent / "src" / "data" / "oberwil.json").read_text())
+    town = json.loads((HERE.parent / "src" / "data" / "town.json").read_text())
     w, s, e, n = town["bbox"]
+    town_name = json.loads((HERE.parent / "region.json").read_text())["name"]
 
     layers = [
         layer
@@ -43,7 +44,7 @@ def main() -> None:
     ]
     out = {
         "version": 8,
-        "name": "Oberwil – swisstopo light base map, trimmed",
+        "name": f"{town_name} – swisstopo light base map, trimmed",
         "sources": {
             base_id: {
                 "type": "vector",

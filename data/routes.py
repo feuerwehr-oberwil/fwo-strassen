@@ -1,5 +1,5 @@
 """Build src/data/routes.json: the truck route from the Feuerwehrmagazin to every street,
-house-number section and named area in src/data/oberwil.json.
+house-number section and named area in src/data/town.json.
 
 Run from this directory after build.py: `uv run routes.py`. The road network comes from
 OpenStreetMap (© OpenStreetMap contributors, ODbL) via Overpass, cached in ./cache.
@@ -25,7 +25,8 @@ from shapely.geometry import LineString, Point, shape
 
 HERE = Path(__file__).parent
 CACHE = HERE / "cache" / "osm-roads.json"
-TOWN = HERE.parent / "src" / "data" / "oberwil.json"
+REGION = json.loads((HERE.parent / "region.json").read_text())
+TOWN = HERE.parent / "src" / "data" / "town.json"
 OUT = HERE.parent / "src" / "data" / "routes.json"
 MARGIN = 0.01  # degrees of road network around the town (~1 km), for routes that leave town briefly
 
@@ -53,11 +54,11 @@ ACCESS_M = 200  # footpaths and fields: the route ends at the nearest drivable p
 # don't stop a truck.
 OPEN_BARRIERS = {"no", "kerb", "cattle_grid", "border_control", "toll_booth", "entrance"}
 
-# What the drivers know and OSM doesn't (Feuerwehr Oberwil, Oct 2026): barriers missing in OSM
-# (lon, lat; the nearest road node is closed), and residential streets they drive as access roads
-# anyway (timed like a tertiary road).
-BARRIERS = [(7.56305, 47.52363)]  # Stallenstrasse between Amselstrasse and Meisenstrasse
-ACCESS_ROADS = {"Talstrasse"}
+# What the drivers know and OSM doesn't, from region.json: barriers missing in OSM (lon, lat; the
+# nearest road node is closed), and residential streets they drive as access roads anyway (timed
+# like a tertiary road).
+BARRIERS = [tuple(b["at"]) for b in REGION["fixes"]["barriers"]]
+ACCESS_ROADS = set(REGION["fixes"]["accessRoads"])
 
 to_lv95 = Transformer.from_crs(4326, 2056, always_xy=True)
 
@@ -70,7 +71,7 @@ def overpass(bbox: list[float]) -> dict:
         req = urllib.request.Request(
             "https://overpass-api.de/api/interpreter",
             data=urllib.parse.urlencode({"data": query}).encode(),
-            headers={"User-Agent": "fwo-strassen-data/1.0 (Feuerwehr Oberwil street trainer)"},
+            headers={"User-Agent": f"strassen-trainer-data/1.0 ({REGION['brand']} street trainer)"},
         )
         print("downloading OSM roads …")
         CACHE.write_bytes(urllib.request.urlopen(req).read())

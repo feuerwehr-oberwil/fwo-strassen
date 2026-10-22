@@ -34,6 +34,12 @@ pnpm lint && pnpm test && pnpm build
 
 Pushes to `main` deploy to GitHub Pages (`.github/workflows/deploy.yml`).
 
+## Region
+
+`region.json` sets the town up: name, brand, language, data source (swisstopo BFS number), the
+station's address and local route fixes (barriers OSM lacks, residential streets used as access
+roads). The app title, web manifest and data pipeline all read it; the shape is `src/region.ts`.
+
 ## Progress backup
 
 `server/` is a tiny FastAPI service (SQLite on a volume) that stores each device's cards under an
@@ -48,7 +54,7 @@ cd server && uv run uvicorn app:app --reload # local, then: VITE_BACKUP_URL=http
 
 ## Data
 
-`src/data/oberwil.json`, `src/data/routes.json` and `src/data/basemap.json` are generated, committed
+`src/data/town.json`, `src/data/routes.json` and `src/data/basemap.json` are generated, committed
 and bundled into the JS. To refresh them:
 
 ```sh

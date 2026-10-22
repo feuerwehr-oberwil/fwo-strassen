@@ -1,4 +1,4 @@
-"""Build src/data/oberwil.json from swisstopo open data.
+"""Build src/data/town.json from swisstopo open data, for the town in ../region.json.
 
 Run from this directory: `uv run build.py`. Downloads are cached in ./cache.
 
@@ -23,14 +23,15 @@ from shapely.geometry import LineString, MultiLineString, Point, mapping
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import substring
 
-BFS_NR = 2771  # Oberwil (BL)
 LONG_STREET_M = 500  # streets longer than this get house-number sections
 ENDS_MIN_ADDRESSES = 4  # shorter streets need this many addresses to tell where numbering starts
 ENDS_MIN_CORR = 0.8  # …and numbers that clearly grow from one end to the other (rank correlation)
-STATION = ("Löchlimattstrasse", "1")  # Feuerwehrmagazin, the only marker on the map
 HERE = Path(__file__).parent
+REGION = json.loads((HERE.parent / "region.json").read_text())
+BFS_NR = REGION["source"]["bfs"]
+STATION = (REGION["station"]["street"], REGION["station"]["number"])  # the only marker on the map
 CACHE = HERE / "cache"
-OUT = HERE.parent / "src" / "data" / "oberwil.json"
+OUT = HERE.parent / "src" / "data" / "town.json"
 
 STREETS = "https://data.geo.admin.ch/ch.swisstopo.amtliches-strassenverzeichnis/amtliches-strassenverzeichnis_ch/amtliches-strassenverzeichnis_ch_2056"
 ADDRESSES = "https://data.geo.admin.ch/ch.swisstopo.amtliches-gebaeudeadressverzeichnis/amtliches-gebaeudeadressverzeichnis_ch/amtliches-gebaeudeadressverzeichnis_ch_2056"

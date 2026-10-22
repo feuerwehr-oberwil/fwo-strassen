@@ -1,0 +1,11 @@
+{
+  "name": "Oberwil",
+  "brand": "Feuerwehr Oberwil",
+  "language": "de",
+  "source": { "type": "swisstopo", "bfs": 2771 },
+  "station": { "street": "Löchlimattstrasse", "number": "1" },
+  "fixes": {
+    "barriers": [{ "at": [7.56305, 47.52363], "note": "Stallenstrasse between Amselstrasse and Meisenstrasse" }],
+    "accessRoads": ["Talstrasse"]
+  }
+}

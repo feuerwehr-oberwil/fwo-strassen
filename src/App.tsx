@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import region from '../region.json'
 import snailMap from './assets/snail-map.webp'
 import { useBackup } from './backup'
-import town from './data/oberwil.json'
+import town from './data/town.json'
 import { Home } from './Home'
 import { useProgress } from './progress'
 import { questionView, type MapView, type View } from './questionView'
@@ -11,7 +12,7 @@ import { RoundDots } from './ui'
 import { useMediaQuery } from './useMediaQuery'
 import { useRound, type RoundApi } from './useRound'
 
-// town (data/oberwil.json) is bundled into the hashed JS, so app and data can never come from
+// town (data/town.json) is bundled into the hashed JS, so app and data can never come from
 // different deploys (GitHub Pages caches loose files for 10 minutes).
 const overview = coreBBox(town.items)
 const HOME_MAP: MapView = { highlights: [], fit: overview }
@@ -109,7 +110,7 @@ export default function App() {
     <div className="flex items-center gap-3">
       <img src={snailMap} alt="" className="h-14 w-auto" />
       <div>
-        <div className="text-xs font-semibold tracking-wider text-red-600 uppercase">Feuerwehr Oberwil</div>
+        <div className="text-xs font-semibold tracking-wider text-red-600 uppercase">{region.brand}</div>
         <div className="text-xl font-bold">Strassen-Trainer</div>
       </div>
     </div>
