@@ -1,9 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { CODE, hasNewer, newCode } from './backup'
+import { hasNewer, normaliseName, profileKey } from './backup'
 
-describe('newCode', () => {
-  it('makes codes the server accepts', () => {
-    for (const r of [0, 0.5, 0.9999]) expect(newCode(() => r)).toMatch(CODE)
+describe('profileKey', () => {
+  it('is the same for the same person however the name is typed', async () => {
+    const key = await profileKey('Oberwil', 'Basti', '1234')
+    expect(key).toMatch(/^[0-9a-f]{64}$/)
+    expect(await profileKey('Oberwil', '  BASTI ', '1234')).toBe(key)
+    expect(normaliseName('Anna  Maria')).toBe(normaliseName('anna maria'))
+  })
+
+  it('differs by PIN and by town', async () => {
+    const key = await profileKey('Oberwil', 'Basti', '1234')
+    expect(await profileKey('Oberwil', 'Basti', '1235')).not.toBe(key)
+    expect(await profileKey('Allschwil', 'Basti', '1234')).not.toBe(key)
   })
 })
 
