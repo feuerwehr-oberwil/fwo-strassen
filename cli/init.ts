@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { createInterface, type Interface } from 'node:readline/promises'
 import { addressBook, municipalities, type Municipality } from '../pipeline/sources/swisstopo.ts'
 import { Region } from '../src/region.ts'
@@ -36,6 +36,9 @@ export function matchMunicipalities(list: Municipality[], query: string): Munici
 
 /** The town name for the app title: «Oberwil (BL)» → «Oberwil». */
 export const townName = (m: Municipality) => m.name.replace(/\s*\([A-Z]{2}\)$/, '')
+
+/** «Allschwil (BL), BFS 2762»; names like «Oberwil (BL)» carry their canton already. */
+const label = (m: Municipality) => `${/\([A-Z]{2}\)$/.test(m.name) ? m.name : `${m.name} (${m.canton})`}, BFS ${m.bfs}`
 
 /** French-speaking cantons default to French, the rest to German. */
 export const defaultLanguage = (m: Municipality): Region['language'] =>
@@ -108,18 +111,18 @@ export async function init(dir: string, given: InitAnswers): Promise<void> {
   const cache = join(dir, '.cache')
   const rl = createInterface({ input: process.stdin, output: process.stdout })
   try {
-    console.log('Loading the municipalities (the first run downloads swisstopo’s street register, ~25 MB) …')
+    console.log('Loading the municipalities (the first run downloads swisstopo’s street register, ~7 MB) …')
     const list = await municipalities(cache)
     const municipality = await answer(rl, 'Municipality (name or BFS number): ', given.municipality, (input) => {
       const found = matchMunicipalities(list, input)
       if (found.length === 1) return found[0]!
       if (!found.length) return { error: `no Swiss municipality matches «${input}»` }
-      const shown = found.slice(0, 15).map((m) => `${m.name} (${m.canton}, BFS ${m.bfs})`)
+      const shown = found.slice(0, 15).map(label)
       return { error: `several match – type the full name or the BFS number:\n    ${shown.join('\n    ')}` }
     })
-    console.log(`→ ${municipality.name} (${municipality.canton}), BFS ${municipality.bfs}`)
+    console.log(`→ ${label(municipality)}`)
 
-    console.log('Loading its addresses (the first run downloads swisstopo’s address register, ~100 MB) …')
+    console.log('Loading its addresses (the first run downloads swisstopo’s address register, ~140 MB) …')
     const book = await addressBook(cache, municipality.bfs)
     const station = await answer(rl, 'Station address (street and number): ', given.station, (input) =>
       findAddress(book, input),
@@ -140,7 +143,9 @@ export async function init(dir: string, given: InitAnswers): Promise<void> {
     const region = Region.assert(newRegion(municipality, station, language, brand))
     mkdirSync(dir, { recursive: true })
     writeFileSync(file, `${JSON.stringify(region, null, 2)}\n`)
-    console.log(`\nWrote ${file}. Next:\n  cd ${dir}\n  npx strassen-trainer data\n  npx strassen-trainer build`)
+    console.log(
+      `\nWrote ${relative('.', file)}. Next:\n  cd ${relative('.', dir)}\n  npx strassen-trainer data\n  npx strassen-trainer build`,
+    )
   } finally {
     rl.close()
   }
