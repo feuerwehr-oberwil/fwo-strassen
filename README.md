@@ -79,9 +79,11 @@ source, `fr.ts` and `en.ts` must match its shape, so a missing translation fails
 
 ## Progress backup
 
-`server/` is a tiny Node service (Hono + built-in SQLite) that stores each device's cards under an
-anonymous code like `rot-schnecke-4821`, so progress survives Safari's storage eviction and moves to
-a new phone. No accounts, no personal data. The app syncs only when it is built with
+`server/` is a tiny Node service (Hono + built-in SQLite) that stores the cards under a profile, so
+progress survives Safari's storage eviction and moves to a new phone. Drivers sign in on the start
+screen with name + 4-digit PIN; the browser sends only the SHA-256 of town, name and PIN, so the
+server never sees a name. If nobody has that name + PIN, the app asks before creating a profile (a
+wrong PIN looks like a new person). «Abmelden» keeps the progress on the device. The app syncs only when it is built with
 `VITE_BACKUP_URL` set; otherwise the backup is off.
 
 ```sh

@@ -24,7 +24,7 @@ export default function App({ data }: { data: TownData }) {
   const { town, routes, basemap, config } = data
   const overview = useMemo(() => coreBBox(town.items), [town])
   const progress = useProgress()
-  const backup = useBackup(progress)
+  const backup = useBackup(progress, config.name)
   const round = useRound(town, progress)
   const wide = useMediaQuery('(min-width: 1024px)')
   const landscape = useMediaQuery('(orientation: landscape) and (min-width: 568px)')
