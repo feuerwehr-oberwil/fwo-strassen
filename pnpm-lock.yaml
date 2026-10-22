@@ -11,18 +11,15 @@ importers:
       '@hono/node-server':
         specifier: ^2.1.5
         version: 2.1.5(hono@4.13.13)
+      arktype:
+        specifier: ^2.2.9
+        version: 2.2.9
       hono:
         specifier: ^4.13.13
         version: 4.13.13
-      maplibre-gl:
-        specifier: ^6.15.0
-        version: 6.15.0
-      react:
-        specifier: ^19.3.1
-        version: 19.3.1
-      react-dom:
-        specifier: ^19.3.1
-        version: 19.3.1(react@19.3.1)
+      proj4:
+        specifier: ^2.22.0
+        version: 2.22.0
     devDependencies:
       '@playwright/test':
         specifier: ~1.64.1
@@ -45,18 +42,21 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.1.2
         version: 6.1.2(vite@8.3.5(@types/node@24.19.2)(jiti@2.7.0))
-      arktype:
-        specifier: ^2.2.9
-        version: 2.2.9
+      maplibre-gl:
+        specifier: ^6.15.0
+        version: 6.15.0
       oxlint:
         specifier: ^1.88.0
         version: 1.89.0
       prettier:
         specifier: ^3.9.10
         version: 3.9.10
-      proj4:
-        specifier: ^2.22.0
-        version: 2.22.0
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: ^19.3.1
+        version: 19.3.1(react@19.3.1)
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3

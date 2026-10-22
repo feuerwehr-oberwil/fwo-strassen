@@ -1,9 +1,10 @@
 import { type } from 'arktype'
 
 /**
- * Shape of region.json at the repo root: the one file someone edits to set the trainer up for their
- * town. Read by the app (brand, language), vite.config.ts (title, manifest) and the data pipeline,
- * which validates it with this schema. The app imports only the type, so arktype isn't bundled.
+ * Shape of region.json: the one file someone edits to set the trainer up for their town (written
+ * by `strassen-trainer init`). The CLI validates it with this schema, runs the data pipeline on it
+ * and writes the page title, manifest and config.json from it. The app imports only types from
+ * here, so arktype isn't bundled.
  */
 export const Region = type({
   /** Town name as shown in the app title, e.g. «Strassen-Trainer Oberwil». */
@@ -24,3 +25,7 @@ export const Region = type({
   },
 })
 export type Region = typeof Region.infer
+
+/** What the app gets from region.json at runtime (config.json, written by `strassen-trainer build`). */
+export type PublicConfig = Pick<Region, 'name' | 'brand' | 'language'>
+export const publicConfig = ({ name, brand, language }: Region): PublicConfig => ({ name, brand, language })

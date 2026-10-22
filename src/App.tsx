@@ -1,31 +1,28 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import region from '../region.json'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import snailMap from './assets/snail-map.webp'
 import { useBackup } from './backup'
-import town from './data/town.json'
 import { Home } from './Home'
 import { t } from './i18n'
 import { useProgress } from './progress'
 import { questionView, type MapView, type View } from './questionView'
 import { coreBBox } from './town'
+import type { TownData } from './townData'
 import { TownMap, UI_GAP, type Padding } from './TownMap'
 import { RoundDots } from './ui'
 import { useMediaQuery } from './useMediaQuery'
 import { useRound, type RoundApi } from './useRound'
 
-// town (data/town.json) is bundled into the hashed JS, so app and data can never come from
-// different deploys (GitHub Pages caches loose files for 10 minutes).
-const overview = coreBBox(town.items)
-const HOME_MAP: MapView = { highlights: [], fit: overview }
 /** Phone: the smallest height (px) the fitted box gets between question card and bottom sheet. */
 const MIN_MAP = 160
 
 /**
- * Start screen, then rounds. Phone (portrait): full-screen map with the question card on top and
+ * Start screen, then rounds, for the town in `data` (loaded once by main.tsx). Phone (portrait): full-screen map with the question card on top and
  * answers or the main button at the bottom; the start screen covers the map. Desktop (≥ 1024 px)
  * and landscape phones/tablets: a sidebar (left, or right on small landscape screens) next to the map.
  */
-export default function App() {
+export default function App({ data }: { data: TownData }) {
+  const { town, routes, basemap, config } = data
+  const overview = useMemo(() => coreBBox(town.items), [town])
   const progress = useProgress()
   const backup = useBackup(progress)
   const round = useRound(town, progress)
@@ -41,7 +38,8 @@ export default function App() {
   const [recentred, setRecentred] = useState(0)
 
   const view =
-    round.round && questionView({ round: { ...round, round: round.round }, overview, desktop: wide, focus, setFocus })
+    round.round &&
+    questionView({ round: { ...round, round: round.round }, routes, overview, desktop: wide, focus, setFocus })
   useKeyboard(round)
 
   const mapBox = useRef<HTMLDivElement>(null)
@@ -70,9 +68,10 @@ export default function App() {
     <div ref={mapBox} className="absolute inset-0">
       <TownMap
         town={town}
+        baseStyle={basemap}
         padding={padding}
         refitKey={`${step}:${focus}:${recentred}`}
-        {...((view?.map ?? HOME_MAP) satisfies MapView)}
+        {...((view?.map ?? { highlights: [], fit: overview }) satisfies MapView)}
       />
     </div>
   )
@@ -111,7 +110,7 @@ export default function App() {
     <div className="flex items-center gap-3">
       <img src={snailMap} alt="" className="h-14 w-auto" />
       <div>
-        <div className="text-xs font-semibold tracking-wider text-red-600 uppercase">{region.brand}</div>
+        <div className="text-xs font-semibold tracking-wider text-red-600 uppercase">{config.brand}</div>
         <div className="text-xl font-bold">{t.appName}</div>
       </div>
     </div>

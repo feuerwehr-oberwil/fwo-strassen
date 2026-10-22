@@ -1,11 +1,13 @@
-import region from '../../region.json'
-import type { Region } from '../region'
-import { de, type Messages } from './de'
-import { en } from './en'
-import { fr } from './fr'
+import type { Messages } from './de.ts'
+import { messages, type Language } from './messages.ts'
 
-/** Every language's copy; a language missing here or a key missing in one fails tsc. */
-export const messages = { de, fr, en } satisfies Record<Region['language'], Messages>
+export { messages, type Language }
 
-/** The UI copy in region.json's language, e.g. `t.home.start` or `t.home.due(3)`. */
-export const t: Messages = messages[region.language]
+// The page's language: `strassen-trainer build` (cli/site.ts) and the dev server write region.json's
+// into <html lang>, so the copy is known before any data loads. Tests run without a DOM: German.
+const lang = typeof document === 'undefined' ? '' : document.documentElement.lang
+const isLanguage = (l: string): l is Language => Object.hasOwn(messages, l)
+export const language: Language = isLanguage(lang) ? lang : 'de'
+
+/** The UI copy in the page's language, e.g. `t.home.start` or `t.home.due(3)`. */
+export const t: Messages = messages[language]

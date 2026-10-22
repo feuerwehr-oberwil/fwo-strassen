@@ -127,3 +127,12 @@ export function Kbd({ children }: { children: ReactNode }) {
     <kbd className="rounded border border-stone-300 bg-white px-1.5 text-xs font-normal text-stone-500">{children}</kbd>
   )
 }
+
+/** Shown while the town loads, or when it couldn't. Looks like the map's own loading badge. */
+export function Status({ text }: { text: string }) {
+  return (
+    <main className="grid h-dvh place-items-center bg-stone-100" role="status">
+      <span className="rounded-full bg-white/90 px-4 py-2 text-sm text-stone-700 shadow">{text}</span>
+    </main>
+  )
+}

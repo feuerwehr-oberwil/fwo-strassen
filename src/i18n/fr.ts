@@ -1,5 +1,5 @@
-import type { Item } from '../town'
-import type { Messages } from './de'
+import type { Item } from '../town.ts'
+import type { Messages } from './de.ts'
 
 type Kind = Item['kind']
 const dec = (m: number) => (m / 1000).toFixed(1).replace('.', ',')

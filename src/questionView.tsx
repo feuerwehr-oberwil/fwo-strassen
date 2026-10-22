@@ -2,17 +2,16 @@ import type { Point } from 'geojson'
 import type { ReactNode } from 'react'
 import snailCheer from './assets/snail-cheer.webp'
 import snailMap from './assets/snail-map.webp'
-import routes from './data/routes.json'
 import { t } from './i18n'
 import { NEUTRAL, SECTION_COLORS, TONE_COLOR, type Tone } from './palette'
 import type { Question } from './round'
-import { bboxOf, sectionLabel, union, type BBox, type Item, type LngLat } from './town'
+import { bboxOf, sectionLabel, union, type BBox, type Item, type LngLat, type Routes } from './town'
 import { Countdown, ListRows, Result, Verdict } from './RoundParts'
 import type { Label, TownMapProps } from './TownMap'
 import { Button, Kbd } from './ui'
 import { AUTO_NEXT_MS, type Round, type RoundApi } from './useRound'
 
-export type MapView = Omit<TownMapProps, 'town' | 'padding' | 'refitKey'>
+export type MapView = Omit<TownMapProps, 'town' | 'baseStyle' | 'padding' | 'refitKey'>
 /**
  * What one screen of a round shows. `prompt` is the question card (the result shows in it after
  * answering, `tone` colours its ring); `body` holds lists and answer buttons; `action` is the
@@ -23,6 +22,7 @@ export type View = { map: MapView; prompt: ReactNode; tone?: 'ok' | 'bad'; body?
 /** `focus`: the list row tapped on an intro or summary screen, which the map zooms to. */
 type Ctx = {
   round: RoundApi & { round: Round }
+  routes: Routes
   overview: BBox
   desktop: boolean
   focus: number | null
@@ -31,7 +31,7 @@ type Ctx = {
 
 /** The screen for the current step (intro or question), or the summary once the round is done. */
 export function questionView(ctx: Ctx): View {
-  const { round, desktop } = ctx
+  const { round, routes, desktop } = ctx
   const q = round.question
   if (!q) return summaryView(ctx)
   if (q.kind === 'intro') return introView(ctx, q)
@@ -346,7 +346,7 @@ const rowTitle = (q: Exclude<Question, { kind: 'intro' }>) =>
       ? `${q.item.name} ${t.question.nr(q.ends.from)}`
       : q.item.name
 
-/** Which route (src/data/routes.json) leads to what a question asks. */
+/** Which route (routes.json) leads to what a question asks. */
 function routeKey(q: Exclude<Question, { kind: 'intro' }>): string {
   if (q.kind === 'section') return `${q.item.id}:${q.section}`
   if (q.kind === 'start') return `${q.item.id}:start`

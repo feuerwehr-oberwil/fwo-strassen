@@ -7,11 +7,11 @@ import {
   type MapGeoJSONFeature,
   setWorkerUrl,
   type PointLike,
+  type StyleSpecification,
 } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef, useState } from 'react'
-import basemap from './data/basemap.json'
 import { t } from './i18n'
 import { ROUTE_COLOR, TONE_COLOR, TRUCK_COLOR, type Tone } from './palette'
 import { cutLine, segmentDistance, type BBox, type LngLat, type Town } from './town'
@@ -23,6 +23,11 @@ export type Label = { text: string; color: string; at: Geometry; pin?: boolean }
 
 export type TownMapProps = {
   town: Town
+  /**
+   * swisstopo base map (buildings, forest, water) without labels, so the map never gives away a
+   * street name. Trimmed to the town by pipeline/basemap.ts (basemap.json), so no style request.
+   */
+  baseStyle: StyleSpecification
   /** Items to colour, e.g. the asked street in orange; `dashed` marks the user's wrong tap. */
   highlights: { id: string; tone: Tone; dashed?: boolean }[]
   overlays?: Overlay[]
@@ -43,9 +48,6 @@ export type TownMapProps = {
 // maplibre can't find its worker once bundled; ship it as a plain asset instead.
 setWorkerUrl(workerUrl)
 
-// swisstopo base map (buildings, forest, water) without labels, so the map never gives away a
-// street name. Trimmed to the town by pipeline/basemap.ts and bundled, so no style request.
-const BASE_STYLE = basemap
 /** A tap waits this long before it answers, so a double tap can zoom instead. */
 const DOUBLE_TAP_MS = 300
 export type Padding = { top: number; bottom: number; left: number; right: number }
@@ -62,11 +64,12 @@ const ROUTE_MS = 1200
 const collection = (features: Feature[]): FeatureCollection => ({ type: 'FeatureCollection', features })
 
 /**
- * Unlabelled MapLibre map of Oberwil with tappable streets and named areas.
+ * Unlabelled MapLibre map of the town with tappable streets and named areas.
  * Purely driven by props; the quiz modes own all state.
  */
 export function TownMap({
   town,
+  baseStyle,
   highlights,
   overlays = NO_OVERLAYS,
   labels = NO_LABELS,
@@ -100,7 +103,7 @@ export function TownMap({
     const [w, s, e, n] = town.bbox
     const m = new MapLibre({
       container: container.current!,
-      style: BASE_STYLE,
+      style: baseStyle,
       bounds: [w, s, e, n],
       // the base map has tiles for ±0.02°; the bounds are wider because they hold the whole
       // canvas, and on a phone most of it sits under the question card and the bottom sheet
@@ -175,7 +178,7 @@ export function TownMap({
       clearTimeout(pendingTap)
       m.remove()
     }
-  }, [town])
+  }, [town, baseStyle])
 
   // Highlights, overlays and labels.
   useEffect(() => {

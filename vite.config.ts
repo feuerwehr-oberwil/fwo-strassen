@@ -1,53 +1,44 @@
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
-import region from './region.json'
-import { messages } from './src/i18n'
+import { readRegion } from './cli/region.ts'
+import { fillPage, manifest } from './cli/site.ts'
+import { publicConfig } from './src/region.ts'
 
-const page = messages[region.language].page
-const title = page.title(region.name)
-const manifest = JSON.stringify({
-  name: title,
-  short_name: page.shortName,
-  description: page.description(region.name, region.brand),
-  lang: region.language,
-  start_url: './',
-  scope: './',
-  display: 'standalone',
-  background_color: '#f5f5f4',
-  theme_color: '#f5f5f4',
-  icons: [
-    { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-    { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-  ],
-})
+// `vite build` writes the town-independent app to app/ – index.html keeps its %PLACEHOLDERS% and
+// there is no data. `strassen-trainer build` (cli/site.ts) turns it into a site for one town;
+// `pnpm build` does both for Oberwil (region.json, data/).
 
-/** Fills index.html's %TITLE% / %SHORT_NAME% / %LANG% and serves (dev) or emits (build) the web manifest, from region.json. */
-function regionPage(): Plugin {
+/**
+ * Dev server only: index.html, manifest and config.json for this repo's region.json, so the
+ * running app looks like the built one. The town data itself is served from ./data/ as is.
+ */
+function devRegion(): Plugin {
+  const region = readRegion(fileURLToPath(new URL('region.json', import.meta.url)))
+  const routes: Record<string, { body: string; type: string } | undefined> = {
+    '/manifest.webmanifest': { body: manifest(region), type: 'application/manifest+json' },
+    '/data/config.json': { body: JSON.stringify(publicConfig(region)), type: 'application/json' },
+  }
   return {
-    name: 'region-page',
-    transformIndexHtml: (html) =>
-      html
-        .replaceAll('%TITLE%', title)
-        .replaceAll('%SHORT_NAME%', page.shortName)
-        .replaceAll('%LANG%', region.language),
+    name: 'dev-region',
+    apply: 'serve',
+    transformIndexHtml: (html) => fillPage(html, region, './data/'),
     configureServer(server) {
-      server.middlewares.use('/manifest.webmanifest', (_req, res) => {
-        res.setHeader('Content-Type', 'application/manifest+json')
-        res.end(manifest)
+      server.middlewares.use((req, res, next) => {
+        const route = routes[req.url?.split('?')[0] ?? '']
+        if (!route) return next()
+        res.setHeader('Content-Type', route.type)
+        res.end(route.body)
       })
-    },
-    generateBundle() {
-      this.emitFile({ type: 'asset', fileName: 'manifest.webmanifest', source: manifest })
     },
   }
 }
 
-// Relative base so the build works under any GitHub Pages path.
+// Relative base so the build works under any path (GitHub Pages project sites, subfolders).
 export default defineConfig({
   base: './',
-  plugins: [react(), tailwindcss(), regionPage()],
-  // maplibre alone is ~1 MB, the town data and truck routes ~200 KB (routes gzip to ~5 KB);
-  // one chunk is fine for a single-screen app
-  build: { chunkSizeWarningLimit: 1700 },
+  plugins: [react(), tailwindcss(), devRegion()],
+  // maplibre alone is ~1 MB; one chunk is fine for a single-screen app
+  build: { outDir: 'app', chunkSizeWarningLimit: 1500 },
 })

@@ -1,24 +1,49 @@
 {
-  "name": "fwo-strassen",
-  "private": true,
-  "version": "0.0.0",
+  "name": "strassen-trainer",
+  "version": "0.1.0",
+  "description": "Street trainer for fire brigade drivers: learn every street and house number of a Swiss town",
+  "keywords": [
+    "feuerwehr",
+    "fire brigade",
+    "streets",
+    "swisstopo",
+    "map",
+    "training"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/feuerwehr-oberwil/fwo-strassen#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/feuerwehr-oberwil/fwo-strassen.git"
+  },
+  "bugs": "https://github.com/feuerwehr-oberwil/fwo-strassen/issues",
   "type": "module",
+  "bin": {
+    "strassen-trainer": "cli-dist/cli/index.js"
+  },
+  "files": [
+    "app",
+    "cli-dist"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node cli/index.ts build",
     "lint": "oxlint",
-    "preview": "vite preview",
+    "preview": "vite preview --outDir dist",
     "test": "vitest run",
-    "format": "prettier --write src pipeline",
-    "data": "node pipeline/index.ts",
+    "format": "prettier --write src pipeline cli",
+    "data": "node cli/index.ts data",
+    "prepack": "vite build && tsc -p tsconfig.cli.build.json",
     "e2e:tap": "PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1 LD_LIBRARY_PATH=$HOME/.cache/pwlibs/ext/usr/lib/x86_64-linux-gnu node e2e/double-tap.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.5",
+    "arktype": "^2.2.9",
     "hono": "^4.13.13",
-    "maplibre-gl": "^6.15.0",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "proj4": "^2.22.0"
   },
   "devDependencies": {
     "@playwright/test": "~1.64.1",
@@ -28,10 +53,11 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
-    "arktype": "^2.2.9",
+    "maplibre-gl": "^6.15.0",
     "oxlint": "^1.88.0",
     "prettier": "^3.9.10",
-    "proj4": "^2.22.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
     "vite": "^8.3.4",

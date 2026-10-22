@@ -1,10 +1,9 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import proj4 from 'proj4'
 import type { Geometry, Position } from 'geojson'
 import type { Region } from '../src/region.ts'
 import type { LngLat, Routes, Town } from '../src/town.ts'
-import { CACHE } from './download.ts'
 import {
   bounds,
   distance,
@@ -20,7 +19,7 @@ import {
 
 // The truck route from the Feuerwehrmagazin to every street, house-number section and named area
 // in town.json, on the OpenStreetMap road network (© OpenStreetMap contributors, ODbL) via
-// Overpass, cached in pipeline/cache.
+// Overpass, cached in the cache directory per town area.
 //
 // «Fastest for a large truck»: only roads a TLF can use, timed by road class, so big access roads
 // win over cutting through neighbourhoods; every turn at a junction costs extra time, so of two
@@ -64,11 +63,11 @@ export type Osm = {
 /** What the drivers know and OSM doesn't, from region.json `fixes`, plus the metric CRS to route in. */
 export type Options = { crs: string; barriers: LngLat[]; accessRoads: string[] }
 
-/** All highway ways in the bbox with their nodes, downloaded once. */
-async function overpass(bbox: Town['bbox'], brand: string): Promise<Osm> {
-  const cache = join(CACHE, 'osm-roads.json')
+/** All highway ways in the bbox with their nodes, downloaded into `dir` once per area. */
+async function overpass(bbox: Town['bbox'], brand: string, dir: string): Promise<Osm> {
+  const [w, s, e, n] = [bbox[0] - MARGIN, bbox[1] - MARGIN, bbox[2] + MARGIN, bbox[3] + MARGIN].map((v) => v.toFixed(4))
+  const cache = join(dir, `osm-roads-${w},${s},${e},${n}.json`)
   if (!existsSync(cache)) {
-    const [w, s, e, n] = [bbox[0] - MARGIN, bbox[1] - MARGIN, bbox[2] + MARGIN, bbox[3] + MARGIN]
     const query = `[out:json][timeout:90];way[highway](${s},${w},${n},${e});(._;>;);out body;`
     console.log('downloading OSM roads …')
     const res = await fetch('https://overpass-api.de/api/interpreter', {
@@ -77,6 +76,7 @@ async function overpass(bbox: Town['bbox'], brand: string): Promise<Osm> {
       headers: { 'User-Agent': `strassen-trainer-data/1.0 (${brand} street trainer)` },
     })
     if (!res.ok) throw new Error(`Overpass: HTTP ${res.status}`)
+    mkdirSync(dir, { recursive: true })
     writeFileSync(cache, await res.text())
   }
   return JSON.parse(readFileSync(cache, 'utf8'))
@@ -344,8 +344,8 @@ export function buildRoutes(town: Town, osm: Osm, options: Options): RouteResult
   return result
 }
 
-export async function routes(town: Town, region: Region, crs: string): Promise<RouteResult> {
-  const osm = await overpass(town.bbox, region.brand)
+export async function routes(town: Town, region: Region, crs: string, cache: string): Promise<RouteResult> {
+  const osm = await overpass(town.bbox, region.brand, cache)
   return buildRoutes(town, osm, {
     crs,
     barriers: region.fixes.barriers.map((b) => b.at),
