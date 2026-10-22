@@ -32,16 +32,19 @@ export default function App({ data }: { data: TownData }) {
   // key hints and autofocus follow the input, not the width: none on an iPad, all in a narrow desktop window
   const keyboard = useMediaQuery('(hover: hover) and (pointer: fine)')
 
-  // the list row in focus on intro and summary screens; resets with every step
+  // the list row in focus on intro and summary screens; resets with every step. `fromMap`: picked by
+  // tapping its street, so the map stays where it is instead of zooming to it
   const step = round.round ? `${round.round.id}:${round.round.index}` : 'home'
-  const [focusState, setFocusState] = useState<{ step: string; value: number | null }>({ step, value: null })
-  const focus = focusState.step === step ? focusState.value : null
-  const setFocus = (value: number | null) => setFocusState({ step, value })
+  const [focusState, setFocusState] = useState({ step, value: null as number | null, fromMap: false })
+  const current = focusState.step === step
+  const focus = current ? focusState.value : null
+  const focusFromMap = current && focusState.fromMap
+  const setFocus = (value: number | null, fromMap = false) => setFocusState({ step, value, fromMap })
   const [recentred, setRecentred] = useState(0)
 
   const view =
     round.round &&
-    questionView({ round: { ...round, round: round.round }, routes, overview, keyboard, focus, setFocus })
+    questionView({ round: { ...round, round: round.round }, routes, overview, keyboard, focus, focusFromMap, setFocus })
   useKeyboard(round)
 
   const mapBox = useRef<HTMLDivElement>(null)
@@ -72,7 +75,7 @@ export default function App({ data }: { data: TownData }) {
         town={town}
         baseStyle={basemap}
         padding={padding}
-        refitKey={`${step}:${focus}:${recentred}`}
+        refitKey={`${step}:${focusFromMap ? 'map' : focus}:${recentred}`}
         {...((view?.map ?? { highlights: [], fit: overview }) satisfies MapView)}
       />
     </div>

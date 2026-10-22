@@ -30,8 +30,9 @@ export type MapView = Omit<TownMapProps, 'town' | 'baseStyle' | 'padding' | 'ref
 export type View = { map: MapView; prompt: ReactNode; tone?: 'ok' | 'bad'; body?: ReactNode; action?: ReactNode }
 
 /**
- * `focus`: the list row tapped on an intro or summary screen, which the map zooms to. `keyboard`: a
- * mouse is the main input, so buttons show their keys and the main one takes focus for Enter.
+ * `focus`: the list row selected on an intro or summary screen, by tapping the row (the map zooms to
+ * it) or its street on the map (`focusFromMap`: the map stays put). `keyboard`: a mouse is the main
+ * input, so buttons show their keys and the main one takes focus for Enter.
  */
 type Ctx = {
   round: RoundApi & { round: Round }
@@ -39,7 +40,8 @@ type Ctx = {
   overview: BBox
   keyboard: boolean
   focus: number | null
-  setFocus: (i: number | null) => void
+  focusFromMap: boolean
+  setFocus: (i: number | null, fromMap?: boolean) => void
 }
 
 type Asked = Exclude<Question, { kind: 'intro' }>
@@ -226,8 +228,14 @@ function askView(ctx: Ctx, q: Asked, pick: Pick | null, selection: Pick | null):
   }
 }
 
-/** New streets of the round, all at once: numbered on the map and listed; a row zooms to its street. */
-function introView({ round, keyboard, focus, setFocus }: Ctx, q: Extract<Question, { kind: 'intro' }>): View {
+/**
+ * New streets of the round, all at once: numbered on the map and listed. A row zooms to its street;
+ * tapping a street on the map selects its row and names it there.
+ */
+function introView(
+  { round, keyboard, focus, focusFromMap, setFocus }: Ctx,
+  q: Extract<Question, { kind: 'intro' }>,
+): View {
   const focused = focus === null ? undefined : q.items[focus]
   const sections = focused?.withNumbers ? focused.item.sections : []
   const labels: Label[] = q.items.flatMap(({ item }, i) =>
@@ -247,7 +255,11 @@ function introView({ round, keyboard, focus, setFocus }: Ctx, q: Extract<Questio
       overlays: sections.map((s, i) => ({ key: i, geometry: s.geometry, color: SECTION_COLORS[i]! })),
       labels,
       // all streets at once get no margin: on a phone they barely fit between card and list
-      fit: focused ? withMargin(focused.item.bbox) : q.items.map((i) => i.item.bbox).reduce(union),
+      fit: focused && !focusFromMap ? withMargin(focused.item.bbox) : q.items.map((i) => i.item.bbox).reduce(union),
+      onPickItem: (id) => {
+        const i = q.items.findIndex(({ item }) => item.id === id)
+        if (i >= 0) setFocus(i === focus ? null : i, true)
+      },
     },
     prompt: (
       <>
@@ -284,7 +296,7 @@ function introView({ round, keyboard, focus, setFocus }: Ctx, q: Extract<Questio
  * wrong). A tapped row shows that question as it looked after answering: result and truck route.
  */
 function summaryView(ctx: Ctx): View {
-  const { round, overview, keyboard, focus, setFocus } = ctx
+  const { round, overview, keyboard, focus, focusFromMap, setFocus } = ctx
   const { questions, results, picks, practice } = round.round
   const asked = questions.flatMap((q, i) => (q.kind === 'intro' ? [] : [{ q, right: results[i]!, pick: picks[i]! }]))
   const misses = asked.filter((a) => !a.right).length
@@ -306,21 +318,30 @@ function summaryView(ctx: Ctx): View {
   const focused = focus === null ? undefined : asked[focus]
   const again = focused && askView(ctx, focused.q, focused.pick, null)
   const scoreText = t.summary.score(score, asked.length)
+  // a tap on the map selects the question pinned there, like its row, but the map stays put
+  const pickQuestion = (i: number) => setFocus(i === focus ? null : i, true)
+  const onPickItem = (id: string) => {
+    const i = focused?.q.item.id === id ? focus! : asked.findIndex((a) => a.q.item.id === id)
+    if (i >= 0) pickQuestion(i)
+  }
+  const map: MapView = again?.map ?? {
+    highlights: asked.flatMap((a) => (a.q.kind === 'section' ? [] : [{ id: a.q.item.id, tone: tone(a) }])),
+    overlays: asked.flatMap((a, i) =>
+      a.q.kind === 'section' ? [{ key: i, geometry: geometryOf(a.q), color: TONE_COLOR[tone(a)] }] : [],
+    ),
+    labels: asked.map((a, i) => ({
+      text: String(i + 1),
+      color: TONE_COLOR[tone(a)],
+      at: geometryOf(a.q),
+      pin: true,
+    })),
+    fit: overview,
+    // section overlays are keyed by their question's index
+    onPickOverlay: pickQuestion,
+  }
 
   return {
-    map: again?.map ?? {
-      highlights: asked.flatMap((a) => (a.q.kind === 'section' ? [] : [{ id: a.q.item.id, tone: tone(a) }])),
-      overlays: asked.flatMap((a, i) =>
-        a.q.kind === 'section' ? [{ key: i, geometry: geometryOf(a.q), color: TONE_COLOR[tone(a)] }] : [],
-      ),
-      labels: asked.map((a, i) => ({
-        text: String(i + 1),
-        color: TONE_COLOR[tone(a)],
-        at: geometryOf(a.q),
-        pin: true,
-      })),
-      fit: overview,
-    },
+    map: { ...map, ...(again && focusFromMap && { fit: overview }), onPickItem },
     tone: again?.tone,
     prompt: again ? (
       <>
