@@ -29,6 +29,9 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm build
+        env:
+          # progress backup (server/) on Railway, project fwo-strassen, service backup
+          VITE_BACKUP_URL: https://backup-production-81ef.up.railway.app
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
