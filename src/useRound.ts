@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import region from '../region.json'
 import { useStoredState, type Progress } from './progress'
 import { isCorrect, makeQuestion, pickRound, planRound, roundKeys, shuffle, type Mode, type Question } from './round'
 import { byImportance, type Town } from './town'
@@ -31,7 +32,7 @@ export type Round = {
  * once all steps are answered `question` is undefined and the summary shows.
  */
 export function useRound(town: Town, progress: Progress) {
-  const items = useMemo(() => byImportance(town.items), [town])
+  const items = useMemo(() => byImportance(town.items, region.language), [town])
   const [stored, setSettings] = useStoredState<Partial<Settings>>('fwo-strassen:settings', DEFAULTS)
   const settings: Settings = { ...DEFAULTS, ...stored }
   const keys = useMemo(

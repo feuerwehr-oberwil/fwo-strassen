@@ -44,7 +44,7 @@ export type TownMapProps = {
 setWorkerUrl(workerUrl)
 
 // swisstopo base map (buildings, forest, water) without labels, so the map never gives away a
-// street name. Trimmed to Oberwil by data/basemap.py and bundled, so no style request.
+// street name. Trimmed to the town by pipeline/basemap.ts and bundled, so no style request.
 const BASE_STYLE = basemap
 /** A tap waits this long before it answers, so a double tap can zoom instead. */
 const DOUBLE_TAP_MS = 300
