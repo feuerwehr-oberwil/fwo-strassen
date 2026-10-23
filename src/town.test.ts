@@ -1,6 +1,6 @@
 import type { Geometry } from 'geojson'
 import { describe, expect, it } from 'vitest'
-import { cutLine, distanceM, type Item } from './town'
+import { crossings, cutLine, distanceM, type Item } from './town'
 
 const street = (geometry: Geometry): Item => ({
   id: 'x',
@@ -49,6 +49,63 @@ describe('distanceM', () => {
       ],
     })
     expect(distanceM(a, b)).toBe(0)
+  })
+})
+
+describe('crossings', () => {
+  const line = (id: string, coordinates: [number, number][], lengthM: number): Item => ({
+    ...street({ type: 'LineString', coordinates }),
+    id,
+    name: id,
+    lengthM,
+  })
+  // `main` runs east–west; `side` ends on it, `far` passes 110 m north, `area` touches but is no street
+  const main = line(
+    'main',
+    [
+      [7.54, 47.52],
+      [7.56, 47.52],
+    ],
+    2000,
+  )
+  const side = line(
+    'side',
+    [
+      [7.55, 47.52],
+      [7.55, 47.525],
+    ],
+    500,
+  )
+  const longSide = line(
+    'longSide',
+    [
+      [7.556, 47.52],
+      [7.556, 47.53],
+    ],
+    1000,
+  )
+  const far = line(
+    'far',
+    [
+      [7.54, 47.521],
+      [7.56, 47.521],
+    ],
+    2000,
+  )
+  const area: Item = {
+    ...line(
+      'area',
+      [
+        [7.545, 47.52],
+        [7.545, 47.523],
+      ],
+      300,
+    ),
+    kind: 'area',
+  }
+
+  it('names the streets touching a street, longest first, and leaves out areas and the street itself', () => {
+    expect(crossings(main, [main, side, longSide, far, area]).map((i) => i.id)).toEqual(['longSide', 'side'])
   })
 })
 

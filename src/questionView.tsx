@@ -4,9 +4,10 @@ import snailCheer from './assets/snail-cheer.webp'
 import snailMap from './assets/snail-map.webp'
 import { t } from './i18n'
 import { NEUTRAL, SECTION_COLORS, TONE_COLOR, type Tone } from './palette'
-import type { Question } from './round'
+import { GIVE_UP, type Question } from './round'
 import {
   bboxOf,
+  crossings,
   distanceM,
   sectionKey,
   sectionLabel,
@@ -16,7 +17,7 @@ import {
   type LngLat,
   type Routes,
 } from './town'
-import { Countdown, ListRows, Result, Verdict } from './RoundParts'
+import { Countdown, GiveUp, ListRows, Result, Verdict } from './RoundParts'
 import type { Label, TownMapProps } from './TownMap'
 import { Button, Kbd } from './ui'
 import { AUTO_NEXT_MS, type Pick, type Round, type RoundApi } from './useRound'
@@ -31,13 +32,15 @@ export type View = { map: MapView; prompt: ReactNode; tone?: 'ok' | 'bad'; body?
 
 /**
  * `focus`: the list row selected on an intro or summary screen, by tapping the row (the map zooms to
- * it) or its street on the map (`focusFromMap`: the map stays put). `keyboard`: a mouse is the main
- * input, so buttons show their keys and the main one takes focus for Enter.
+ * it) or its street on the map (`focusFromMap`: the map stays put). `axes`: the Hauptachsen, named
+ * on the map as points of reference. `keyboard`: a mouse is the main input, so buttons show their
+ * keys and the main one takes focus for Enter.
  */
 type Ctx = {
   round: RoundApi & { round: Round }
   routes: Routes
   overview: BBox
+  axes: Item[]
   keyboard: boolean
   focus: number | null
   focusFromMap: boolean
@@ -59,7 +62,8 @@ export function questionView(ctx: Ctx): View {
  * pick again; there only `map` and `prompt` are used.
  */
 function askView(ctx: Ctx, q: Asked, pick: Pick | null, selection: Pick | null): View {
-  const { round, routes, keyboard } = ctx
+  const { round, routes, axes, keyboard } = ctx
+  const gaveUp = pick === GIVE_UP
   // after answering: the truck route from the Magazin. With a route, the map shows only the route
   // and `street`, as large as they fit, instead of `fit`
   const route = pick === null ? undefined : routes[routeKey(q)]
@@ -72,13 +76,13 @@ function askView(ctx: Ctx, q: Asked, pick: Pick | null, selection: Pick | null):
         {round.round.results.at(-1) && <Countdown ms={AUTO_NEXT_MS} />}
         {isLast ? t.question.results : t.question.next} {keyboard && <Kbd>Enter</Kbd>}
       </Button>
+    ) : selection !== null ? (
+      // map questions: a tap only selects, «Prüfen» answers
+      <Button tone="primary" onClick={round.confirm} autoFocus={keyboard}>
+        {t.question.check} {keyboard && <Kbd>Enter</Kbd>}
+      </Button>
     ) : (
-      selection !== null && (
-        // map questions: a tap only selects, «Prüfen» answers
-        <Button tone="primary" onClick={round.confirm} autoFocus={keyboard}>
-          {t.question.check} {keyboard && <Kbd>Enter</Kbd>}
-        </Button>
-      )
+      <GiveUp onClick={round.giveUp} keyboard={keyboard} />
     )
 
   if (q.kind === 'section') {
@@ -96,14 +100,16 @@ function askView(ctx: Ctx, q: Asked, pick: Pick | null, selection: Pick | null):
           geometry: sec.geometry,
           color: pick !== null ? SECTION_COLORS[i]! : i === selection ? TONE_COLOR.select : NEUTRAL,
         })),
-        labels:
-          pick === null
+        labels: [
+          ...(pick === null
             ? []
             : order.map((i) => {
                 const sec = q.item.sections[i]!
                 const mark = i === q.section ? '✓ ' : i === pick ? '✗ ' : ''
                 return { text: mark + sectionLabel(sec), color: SECTION_COLORS[i]!, at: sec.geometry }
-              }),
+              })),
+          ...anchors(axes, [q.item]),
+        ],
         fit: withRoute(q.item.bbox, q.item.bbox),
         onPickOverlay: pick === null ? round.select : undefined,
         route,
@@ -115,7 +121,11 @@ function askView(ctx: Ctx, q: Asked, pick: Pick | null, selection: Pick | null):
             <div className="text-sm text-stone-500">{q.item.name}</div>
           ) : (
             <Verdict right={right}>
-              {right ? t.question.sectionRight(q.item.name) : t.question.sectionWrong(sectionLabel(picked!))}
+              {right
+                ? t.question.sectionRight(q.item.name)
+                : picked
+                  ? t.question.sectionWrong(sectionLabel(picked))
+                  : t.question.gaveUp}
             </Verdict>
           )}
           <div className="text-2xl font-bold tracking-tight">{t.question.whereSection(sectionLabel(s))}</div>
@@ -140,17 +150,19 @@ function askView(ctx: Ctx, q: Asked, pick: Pick | null, selection: Pick | null):
                 color: k === selection ? TONE_COLOR.select : NEUTRAL,
               }))
             : [],
-        labels:
-          pick === null
+        labels: [
+          ...(pick === null
             ? []
             : [
                 { text: `✓ ${t.question.nr(ends.from)}`, color: TONE_COLOR.ok, at: point(ends.low) },
                 {
-                  text: `${right ? '' : '✗ '}${t.question.nr(ends.to)}`,
-                  color: right ? NEUTRAL : TONE_COLOR.bad,
+                  text: `${pick === 1 ? '✗ ' : ''}${t.question.nr(ends.to)}`,
+                  color: pick === 1 ? TONE_COLOR.bad : NEUTRAL,
                   at: point(ends.high),
                 },
-              ],
+              ]),
+          ...anchors(axes, [item]),
+        ],
         fit: withRoute(withMargin(item.bbox, 0.002), item.bbox),
         onPickOverlay: pick === null ? round.select : undefined,
         route,
@@ -166,7 +178,7 @@ function askView(ctx: Ctx, q: Asked, pick: Pick | null, selection: Pick | null):
         ) : (
           <>
             <Verdict right={right}>
-              {right ? t.question.startRight(ends.from) : t.question.startWrong(ends.from)}
+              {right ? t.question.startRight(ends.from) : gaveUp ? t.question.gaveUp : t.question.startWrong(ends.from)}
             </Verdict>
             <div className="text-2xl font-bold tracking-tight">{item.name}</div>
             <div className="text-sm text-stone-500">{t.question.range(ends.from, ends.to)}</div>
@@ -177,25 +189,34 @@ function askView(ctx: Ctx, q: Asked, pick: Pick | null, selection: Pick | null):
   }
 
   const target = q.item
-  const picked = typeof pick === 'string' ? round.items.find((i) => i.id === pick) : undefined
+  const picked = typeof pick === 'string' && !gaveUp ? round.items.find((i) => i.id === pick) : undefined
+  const answered = picked !== undefined || gaveUp
   const wrong = picked && picked.id !== target.id ? picked : undefined
+  const missed = wrong !== undefined || gaveUp
   const highlights: MapView['highlights'] = []
   if (wrong) highlights.push({ id: wrong.id, tone: 'bad', dashed: true })
-  if (picked) highlights.push({ id: target.id, tone: 'ok' })
+  if (answered) highlights.push({ id: target.id, tone: 'ok' })
   else if (q.kind === 'name') highlights.push({ id: target.id, tone: 'target' })
   else if (typeof selection === 'string') highlights.push({ id: selection, tone: 'select' })
-  const tone = picked ? (wrong ? 'bad' : 'ok') : undefined
+  const tone = answered ? (missed ? 'bad' : 'ok') : undefined
   const shown = wrong ? union(target.bbox, wrong.bbox) : target.bbox
-  const fit = withRoute(q.kind === 'name' || picked ? withMargin(shown) : ctx.overview, shown)
-  // with house numbers on, a shorter street shows where its numbering starts and ends
-  const labels = picked && round.settings.withNumbers ? endLabels(target) : undefined
+  const fit = withRoute(q.kind === 'name' || answered ? withMargin(shown) : ctx.overview, shown)
+  const labels: Label[] = [
+    // after a miss both lines carry their name, so card and map read as one
+    ...(missed ? [{ text: target.name, color: TONE_COLOR.ok, at: target.geometry }] : []),
+    ...(wrong ? [{ text: wrong.name, color: TONE_COLOR.bad, at: wrong.geometry }] : []),
+    // with house numbers on, a shorter street shows where its numbering starts and ends
+    ...(answered && round.settings.withNumbers ? endLabels(target) : []),
+    // not while a «Benennen» question is open: the named axes would give the answer away
+    ...(q.kind === 'name' && !answered ? [] : anchors(axes, [target, ...(wrong ? [wrong] : [])])),
+  ]
 
   if (q.kind === 'find')
     return {
       map: { highlights, labels, fit, route, onPickItem: pick === null ? round.select : undefined },
       tone,
-      prompt: picked ? (
-        <Result target={target} wrong={wrong} />
+      prompt: answered ? (
+        <Result target={target} wrong={wrong} gaveUp={gaveUp} />
       ) : (
         <>
           <div className="text-sm text-stone-500">{t.question.tap(target.kind)}</div>
@@ -208,13 +229,13 @@ function askView(ctx: Ctx, q: Asked, pick: Pick | null, selection: Pick | null):
   return {
     map: { highlights, labels, fit, route },
     tone,
-    prompt: picked ? (
-      <Result target={target} wrong={wrong} />
+    prompt: answered ? (
+      <Result target={target} wrong={wrong} gaveUp={gaveUp} />
     ) : (
       <div className="text-2xl font-bold tracking-tight">{t.question.name(target.kind)}</div>
     ),
     // once answered the card shows the result, so the buttons make room for the map
-    body: !picked && (
+    body: !answered && (
       <div className="flex flex-col gap-2">
         {q.options.map((o, i) => (
           <Button key={o.id} onClick={() => round.answer(o.id)}>
@@ -229,15 +250,18 @@ function askView(ctx: Ctx, q: Asked, pick: Pick | null, selection: Pick | null):
 }
 
 /**
- * New streets of the round, all at once: numbered on the map and listed. A row zooms to its street;
- * tapping a street on the map selects its row and names it there.
+ * New streets of the round, all at once: numbered on the map and listed. A row zooms to its street
+ * and names the streets it crosses, while the batch's other streets fade; tapping a street on the
+ * map selects its row and names it there.
  */
 function introView(
-  { round, keyboard, focus, focusFromMap, setFocus }: Ctx,
+  { round, axes, keyboard, focus, focusFromMap, setFocus }: Ctx,
   q: Extract<Question, { kind: 'intro' }>,
 ): View {
+  const items = q.items.map((i) => i.item)
   const focused = focus === null ? undefined : q.items[focus]
   const sections = focused?.withNumbers ? focused.item.sections : []
+  const near = focused ? crossings(focused.item, round.items).slice(0, 4) : []
   const labels: Label[] = q.items.flatMap(({ item }, i) =>
     i === focus ? [] : [{ text: String(i + 1), color: TONE_COLOR.target, at: item.geometry, pin: true }],
   )
@@ -247,11 +271,16 @@ function introView(
       ...sections.map((s, i) => ({ text: sectionLabel(s), color: SECTION_COLORS[i]!, at: s.geometry })),
       ...(focused.withNumbers ? endLabels(focused.item) : []),
     )
+    labels.push(...near.map((i) => ({ text: i.name, color: NEUTRAL, at: i.geometry, muted: true })))
   }
+  labels.push(...anchors(axes, [...items, ...near]))
   const n = q.items.length
   return {
     map: {
-      highlights: q.items.map(({ item }) => ({ id: item.id, tone: 'target' })),
+      highlights: q.items.map(({ item }) => ({
+        id: item.id,
+        tone: focused && item !== focused.item ? 'faint' : 'target',
+      })),
       overlays: sections.map((s, i) => ({ key: i, geometry: s.geometry, color: SECTION_COLORS[i]! })),
       labels,
       // all streets at once get no margin: on a phone they barely fit between card and list
@@ -312,6 +341,7 @@ function summaryView(ctx: Ctx): View {
   const note = ({ q, pick }: (typeof asked)[number]) => {
     if (q.kind === 'section') return t.question.nr(sectionLabel(q.item.sections[q.section]!))
     if (q.kind === 'start') return t.question.nr(q.ends.from)
+    if (pick === GIVE_UP) return t.question.passed
     const tapped = round.items.find((i) => i.id === pick)
     return tapped && tapped.id !== q.item.id ? t.question.off(distanceM(q.item, tapped)) : undefined
   }
@@ -329,12 +359,13 @@ function summaryView(ctx: Ctx): View {
     overlays: asked.flatMap((a, i) =>
       a.q.kind === 'section' ? [{ key: i, geometry: geometryOf(a.q), color: TONE_COLOR[tone(a)] }] : [],
     ),
-    labels: asked.map((a, i) => ({
-      text: String(i + 1),
-      color: TONE_COLOR[tone(a)],
-      at: geometryOf(a.q),
-      pin: true,
-    })),
+    labels: [
+      ...asked.map((a, i) => ({ text: String(i + 1), color: TONE_COLOR[tone(a)], at: geometryOf(a.q), pin: true })),
+      ...anchors(
+        ctx.axes,
+        asked.map((a) => a.q.item),
+      ),
+    ],
     fit: overview,
     // section overlays are keyed by their question's index
     onPickOverlay: pickQuestion,
@@ -397,6 +428,10 @@ function routeKey(q: Asked): string {
   if (q.kind === 'start') return `${q.item.id}:start`
   return q.item.id
 }
+
+/** The Hauptachsen named in grey as points of reference, `except` the ones a screen is about. */
+const anchors = (axes: Item[], except: Item[]): Label[] =>
+  axes.filter((a) => !except.includes(a)).map((a) => ({ text: a.name, color: NEUTRAL, at: a.geometry, muted: true }))
 
 /** «Nr. 1» and «Nr. 42» at the ends of a shorter street, so you learn where its numbering starts. */
 const endLabels = ({ ends }: Item): Label[] =>

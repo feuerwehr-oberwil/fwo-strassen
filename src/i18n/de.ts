@@ -19,6 +19,7 @@ export const de = {
       `Strassen und Hausnummern von ${town} lernen – für die Fahrer der ${brand}`,
   },
   recentre: 'Karte zurücksetzen',
+  north: 'Nach Norden drehen',
   quit: 'Runde beenden',
 
   home: {
@@ -66,6 +67,11 @@ export const de = {
     sectionWrong: (range: string) => `Daneben – das war Nr. ${range}`,
     whereStart: (n: number) => `Wo ist Nr. ${n}?`,
     tapEnd: 'Tippe auf ein Ende der Strasse',
+    /** The «pass» button; a pass counts as wrong and shows the answer. */
+    giveUp: 'Weiss nicht',
+    gaveUp: 'Nicht gewusst',
+    /** Note of a passed question in the summary list. */
+    passed: 'nicht gewusst',
     startRight: (n: number) => `Richtig – Nr. ${n} liegt hier`,
     startWrong: (n: number) => `Daneben – Nr. ${n} ist am anderen Ende`,
     range: (from: number, to: number) => `Nr. ${from} bis Nr. ${to}`,

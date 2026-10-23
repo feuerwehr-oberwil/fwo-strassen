@@ -23,6 +23,7 @@ export const fr = {
       `Apprendre les rues et numéros ${of(town)} – pour les chauffeurs (${brand})`,
   },
   recentre: 'Recentrer la carte',
+  north: 'Remettre le nord en haut',
   quit: 'Terminer la série',
 
   home: {
@@ -69,6 +70,9 @@ export const fr = {
     sectionWrong: (range: string) => `Raté – c’étaient les n° ${range}`,
     whereStart: (n: number) => `Où est le n° ${n} ?`,
     tapEnd: 'Touche une extrémité de la rue',
+    giveUp: 'Je ne sais pas',
+    gaveUp: 'Pas su',
+    passed: 'pas su',
     startRight: (n: number) => `Juste – le n° ${n} est ici`,
     startWrong: (n: number) => `Raté – le n° ${n} est à l’autre bout`,
     range: (from: number, to: number) => `Du n° ${from} au n° ${to}`,

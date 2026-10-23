@@ -41,6 +41,7 @@ it('writes the data to a content-hashed directory that index.html names', () => 
     name: 'Binningen',
     brand: 'Feuerwehr <Binningen>',
     language: 'fr',
+    axes: [],
   })
   expect(readFileSync(join(dist, dir, 'town.json'), 'utf8')).toBe('{"a":1}')
   expect(build()).toBe(dir) // same input, same directory

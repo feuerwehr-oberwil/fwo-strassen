@@ -31,6 +31,9 @@ export const Region = type({
 })
 export type Region = typeof Region.infer
 
-/** What the app gets from region.json at runtime (config.json, written by `strassen-trainer build`). */
-export type PublicConfig = Pick<Region, 'name' | 'brand' | 'language'>
-export const publicConfig = ({ name, brand, language }: Region): PublicConfig => ({ name, brand, language })
+/**
+ * What the app gets from region.json at runtime (config.json, written by `strassen-trainer build`).
+ * `axes`: the Hauptachsen, labelled on the map as the fixed points of reference.
+ */
+export type PublicConfig = Pick<Region, 'name' | 'brand' | 'language' | 'axes'>
+export const publicConfig = ({ name, brand, language, axes }: Region): PublicConfig => ({ name, brand, language, axes })

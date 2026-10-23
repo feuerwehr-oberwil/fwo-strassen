@@ -132,6 +132,13 @@ export function distanceM(a: Item, b: Item): number {
   return Math.min(oneWay(la, lb), oneWay(lb, la))
 }
 
+/** Streets within `maxM` of `item` (touching or crossing it), longest first – its neighbours by name. */
+export function crossings(item: Item, items: Item[], maxM = 20): Item[] {
+  return items
+    .filter((o) => o.id !== item.id && o.kind === 'street' && distanceM(item, o) <= maxM)
+    .toSorted((a, b) => (b.lengthM ?? 0) - (a.lengthM ?? 0))
+}
+
 export type XY = { x: number; y: number }
 
 /** Distance from point `p` to the segment a–b. */

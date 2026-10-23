@@ -1,13 +1,23 @@
 import { useEffect, useMemo, useState } from 'react'
 import { language } from './i18n'
 import { useStoredState, type Progress } from './progress'
-import { isCorrect, makeQuestion, pickRound, planRound, roundKeys, shuffle, type Mode, type Question } from './round'
+import {
+  GIVE_UP,
+  isCorrect,
+  makeQuestion,
+  pickRound,
+  planRound,
+  roundKeys,
+  shuffle,
+  type Mode,
+  type Question,
+} from './round'
 import { byImportance, type Town } from './town'
 
 /** `intro`: show new streets before asking them. */
 export type Settings = { mode: Mode; withNumbers: boolean; intro: boolean }
 const DEFAULTS: Settings = { mode: 'find', withNumbers: false, intro: true }
-/** An answer: the tapped item id, or the section index for house-number questions. */
+/** An answer: the tapped item id, the section index for house-number questions, or GIVE_UP. */
 export type Pick = string | number
 /** A right answer moves on by itself after this long. */
 export const AUTO_NEXT_MS = 2000
@@ -125,6 +135,10 @@ export function useRound(town: Town, progress: Progress) {
       if (round?.selection != null) answer(round.selection)
     },
     answer,
+    /** «Weiss nicht»: counts as wrong and shows the answer, so nobody has to guess. */
+    giveUp() {
+      answer(GIVE_UP)
+    },
     next,
   }
 }

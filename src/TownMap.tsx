@@ -18,8 +18,11 @@ import { cutLine, segmentDistance, type BBox, type LngLat, type Town } from './t
 
 /** Extra lines (house-number sections) or points (street ends) drawn on top, pickable by `key`. */
 export type Overlay = { key: number; geometry: Geometry; color: string }
-/** A badge on the map: a name above a line, or a round numbered `pin` on it. */
-export type Label = { text: string; color: string; at: Geometry; pin?: boolean }
+/**
+ * A badge on the map: a name above a line, or a round numbered `pin` on it. `muted`: a point of
+ * reference (grey on white), not part of the question.
+ */
+export type Label = { text: string; color: string; at: Geometry; pin?: boolean; muted?: boolean }
 
 export type TownMapProps = {
   town: Town
@@ -43,6 +46,10 @@ export type TownMapProps = {
   /** What a tap selects. Taps are ignored when no handler is given. */
   onPickItem?: (id: string) => void
   onPickOverlay?: (key: number) => void
+  /** The map can be rotated (two fingers, or right/ctrl-drag) to match the driving direction; `bearing` in degrees. */
+  onBearing?: (bearing: number) => void
+  /** Turns the map back north whenever it changes. */
+  northKey?: number
 }
 
 // maplibre can't find its worker once bundled; ship it as a plain asset instead.
@@ -54,6 +61,14 @@ export type Padding = { top: number; bottom: number; left: number; right: number
 const TAP_RADIUS = 18 // px
 /** Breathing room the callers add to their padding; labels may use it. */
 export const UI_GAP = 16
+/** Where a pin may step aside (px) when it would cover another label; a name label stays put. */
+const PIN_STEPS: [number, number][] = [
+  [0, 0],
+  [0, -28],
+  [0, 28],
+  [-28, 0],
+  [28, 0],
+]
 const NO_OVERLAYS: Overlay[] = []
 const NO_LABELS: Label[] = []
 const OVERLAY_HIT = ['overlay-hit', 'overlay-points-hit']
@@ -79,6 +94,8 @@ export function TownMap({
   route,
   onPickItem,
   onPickOverlay,
+  onBearing,
+  northKey = 0,
 }: TownMapProps) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<MapLibre | null>(null)
@@ -86,17 +103,17 @@ export function TownMap({
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading')
   const lastPadding = useRef<Padding>({ top: 0, bottom: 0, left: 0, right: 0 })
   const markers = useRef<Marker[]>([])
-  const live = useRef({ onPickItem, onPickOverlay, overlays })
+  const live = useRef({ onPickItem, onPickOverlay, overlays, onBearing })
   /** What the mouse is over (`i:<id>` / `o:<key>`), so the hover outline only redraws on change. */
   const hovered = useRef('')
   useEffect(() => {
-    live.current = { onPickItem, onPickOverlay, overlays }
+    live.current = { onPickItem, onPickOverlay, overlays, onBearing }
     // answered: nothing to pick any more, so drop the hover outline
     if (!onPickItem && !onPickOverlay && map.current) {
       hovered.current = ''
       showHover(map.current, undefined)
     }
-  }, [onPickItem, onPickOverlay, overlays])
+  }, [onPickItem, onPickOverlay, overlays, onBearing])
 
   // Create the map once.
   useEffect(() => {
@@ -110,14 +127,15 @@ export function TownMap({
       maxBounds: [w - 0.05, s - 0.05, e + 0.05, n + 0.05],
       minZoom: 11.5,
       maxZoom: 18,
-      dragRotate: false,
+      // rotation yes (the driver's view), tilt no
       pitchWithRotate: false,
       attributionControl: false, // the app shows «© swisstopo» where the UI leaves room
       // phones report 3× pixels; 2× looks the same here and renders much faster
       pixelRatio: Math.min(window.devicePixelRatio, 2),
       fadeDuration: 0,
     })
-    m.touchZoomRotate.disableRotation()
+    m.touchPitch.disable()
+    m.on('rotate', () => live.current.onBearing?.(m.getBearing()))
     new Marker({ element: stationElement() }).setLngLat(town.station).addTo(m)
     map.current = m
     if (import.meta.env.DEV) Object.assign(window, { townMap: m }) // for poking at it in devtools
@@ -172,6 +190,7 @@ export function TownMap({
     m.on('dblclick', cancelTap)
     m.on('zoomstart', cancelTap)
     m.on('movestart', cancelTap)
+    m.on('rotatestart', cancelTap)
     m.on('move', () => declutter(m, markers.current, lastPadding.current))
     return () => {
       clearTimeout(pendingTap)
@@ -262,10 +281,17 @@ export function TownMap({
     const m = map.current
     if (!m) return
     lastPadding.current = padding()
-    m.fitBounds([w, s, e, n], { padding: lastPadding.current, maxZoom: 16.5, duration: 600 })
+    // a rotated map stays rotated: the box is fitted at the current bearing
+    const bearing = m.getBearing()
+    m.fitBounds([w, s, e, n], { padding: lastPadding.current, maxZoom: 16.5, duration: 600, bearing })
     // padding is a fresh function each render; only refit when the box or refitKey changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refitKey, w, s, e, n])
+
+  // Back to north on request.
+  useEffect(() => {
+    if (northKey) map.current?.resetNorth({ duration: 400 })
+  }, [northKey])
 
   // maplibre sets `position: relative` on the container, so it sits inside an absolute wrapper
   return (
@@ -497,22 +523,33 @@ function showHover(m: MapLibre, geometry: Geometry | undefined) {
 }
 
 /**
- * Shows labels in priority order and hides each one that would cover an earlier label or sit
- * under the UI around the map (the fit padding, minus its breathing room).
+ * Shows labels in priority order. A pin that would cover an earlier label steps aside a little
+ * (PIN_STEPS); a label that still collides, or would sit under the UI around the map (the fit
+ * padding, minus its breathing room), is hidden.
  */
 function declutter(m: MapLibre, markers: Marker[], pad: Padding) {
   const box = m.getContainer().getBoundingClientRect()
   const [top, bottom] = [box.top + pad.top - UI_GAP, box.bottom - pad.bottom + UI_GAP]
   const shown: DOMRect[] = []
+  const free = (r: DOMRect) =>
+    r.top >= top &&
+    r.bottom <= bottom &&
+    !shown.some((o) => r.left < o.right + 2 && o.left < r.right + 2 && r.top < o.bottom + 2 && o.top < r.bottom + 2)
   for (const mk of markers) {
     const el = mk.getElement()
     el.style.visibility = 'visible'
-    const r = el.getBoundingClientRect()
-    const overlaps = shown.some(
-      (o) => r.left < o.right + 2 && o.left < r.right + 2 && r.top < o.bottom + 2 && o.top < r.bottom + 2,
-    )
-    if (overlaps || r.top < top || r.bottom > bottom) el.style.visibility = 'hidden'
-    else shown.push(r)
+    // measure where the label sits without any step, then try the steps on paper
+    const { x: ox, y: oy } = mk.getOffset()
+    const [dx0, dy0] = el.dataset.pin ? [ox, oy] : [0, 0]
+    const r0 = el.getBoundingClientRect()
+    const steps = el.dataset.pin ? PIN_STEPS : [[0, 0] as const]
+    const step = steps.find(([dx, dy]) => free(new DOMRect(r0.x - dx0 + dx, r0.y - dy0 + dy, r0.width, r0.height)))
+    if (!step) el.style.visibility = 'hidden'
+    else {
+      const [dx, dy] = step
+      if (el.dataset.pin && (dx !== ox || dy !== oy)) mk.setOffset([dx, dy])
+      shown.push(new DOMRect(r0.x - dx0 + dx, r0.y - dy0 + dy, r0.width, r0.height))
+    }
   }
 }
 
@@ -527,12 +564,15 @@ function stationElement(): HTMLElement {
   return el
 }
 
-function badge({ text, color, pin }: Label): HTMLElement {
+function badge({ text, color, pin, muted }: Label): HTMLElement {
   const el = document.createElement('div')
   el.className = pin
     ? 'pointer-events-none grid size-6 place-items-center rounded-full text-xs font-extrabold text-white shadow ring-2 ring-white'
-    : 'pointer-events-none rounded-md px-1.5 py-0.5 text-xs font-bold whitespace-nowrap text-white shadow'
-  el.style.background = color
+    : muted
+      ? 'pointer-events-none rounded-md border border-stone-300 bg-white/90 px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-stone-600'
+      : 'pointer-events-none rounded-md px-1.5 py-0.5 text-xs font-bold whitespace-nowrap text-white shadow'
+  if (!muted) el.style.background = color
+  if (pin) el.dataset.pin = '1'
   el.textContent = text
   return el
 }

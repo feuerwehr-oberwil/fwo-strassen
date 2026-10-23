@@ -19,6 +19,7 @@ export const en = {
       `Learn the streets and house numbers of ${town} – for the drivers of ${brand}`,
   },
   recentre: 'Reset map',
+  north: 'Point north',
   quit: 'End round',
 
   home: {
@@ -63,6 +64,9 @@ export const en = {
     sectionWrong: (range: string) => `Missed – that was Nos. ${range}`,
     whereStart: (n: number) => `Where is No. ${n}?`,
     tapEnd: 'Tap one end of the street',
+    giveUp: 'Don’t know',
+    gaveUp: 'Didn’t know',
+    passed: 'didn’t know',
     startRight: (n: number) => `Right – No. ${n} is here`,
     startWrong: (n: number) => `Missed – No. ${n} is at the other end`,
     range: (from: number, to: number) => `No. ${from} to No. ${to}`,
