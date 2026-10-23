@@ -111,6 +111,9 @@ export function makeQuestion(key: string, items: Item[]): Question {
   return { kind: 'find', key, item }
 }
 
+/** The answer of a passed question («Weiss nicht»): never correct, so the card drops to box 0. */
+export const GIVE_UP = 'give-up'
+
 export function isCorrect(q: Exclude<Question, { kind: 'intro' }>, pick: string | number): boolean {
   if (q.kind === 'section') return pick === q.section
   if (q.kind === 'start') return pick === 0

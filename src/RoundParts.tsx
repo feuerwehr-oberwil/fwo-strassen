@@ -2,17 +2,34 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { t } from './i18n'
 import { TONE_COLOR, type Tone } from './palette'
 import { distanceM, type Item } from './town'
+import { Kbd } from './ui'
 
 // Small pieces of the round screens (questionView.tsx).
 
-/** The answer inside the question card: what was asked (green line) and, if wrong, your tap (dashed red). */
-export function Result({ target, wrong }: { target: Item; wrong: Item | undefined }) {
+/**
+ * The answer inside the question card: what was asked (green line) and, if wrong, your tap
+ * (dashed red). `gaveUp`: the question was passed, so there is no tap to show.
+ */
+export function Result({ target, wrong, gaveUp = false }: { target: Item; wrong: Item | undefined; gaveUp?: boolean }) {
+  const verdict = wrong ? t.question.wrong(distanceM(target, wrong)) : gaveUp ? t.question.gaveUp : t.question.right
   return (
     <div className="flex flex-col gap-1">
-      <Verdict right={!wrong}>{wrong ? t.question.wrong(distanceM(target, wrong)) : t.question.right}</Verdict>
+      <Verdict right={!wrong && !gaveUp}>{verdict}</Verdict>
       <LineRow tone="ok" name={target.name} note={wrong && t.question.target} big />
       {wrong && <LineRow tone="bad" dashed name={wrong.name} note={t.question.yourTap} />}
     </div>
+  )
+}
+
+/** The «Weiss nicht» pill under the question: a pass counts as wrong and shows the answer. */
+export function GiveUp({ onClick, keyboard }: { onClick: () => void; keyboard: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      className="mx-auto block w-fit rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-stone-600 shadow-lg hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900"
+    >
+      {t.question.giveUp} {keyboard && <Kbd>0</Kbd>}
+    </button>
   )
 }
 

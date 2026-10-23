@@ -23,6 +23,8 @@ const MIN_MAP = 160
 export default function App({ data }: { data: TownData }) {
   const { town, routes, basemap, config } = data
   const overview = useMemo(() => coreBBox(town.items), [town])
+  // the Hauptachsen (region.json), labelled on the map as points of reference
+  const axes = useMemo(() => town.items.filter((i) => config.axes.includes(i.name)), [town, config.axes])
   const progress = useProgress()
   const backup = useBackup(progress, config.name)
   const round = useRound(town, progress)
@@ -44,7 +46,16 @@ export default function App({ data }: { data: TownData }) {
 
   const view =
     round.round &&
-    questionView({ round: { ...round, round: round.round }, routes, overview, keyboard, focus, focusFromMap, setFocus })
+    questionView({
+      round: { ...round, round: round.round },
+      routes,
+      overview,
+      axes,
+      keyboard,
+      focus,
+      focusFromMap,
+      setFocus,
+    })
   useKeyboard(round)
 
   const mapBox = useRef<HTMLDivElement>(null)
@@ -232,7 +243,7 @@ function QuestionCard({ view, round, quit }: { view: View; round: RoundApi; quit
 
 /**
  * Keyboard: Enter = Runde starten / Prüfen / Weiter / Fehler korrigieren, Esc = Runde beenden,
- * 1–4 = answer in «Benennen». Keys typed on a focused control keep their normal meaning.
+ * 1–4 = answer in «Benennen», 0 = Weiss nicht. Keys typed on a focused control keep their normal meaning.
  */
 function useKeyboard(round: RoundApi) {
   useEffect(() => {
@@ -249,7 +260,8 @@ function useKeyboard(round: RoundApi) {
           else round.start()
         } else if (r.selection !== null) round.confirm()
         else round.next()
-      } else if (q?.kind === 'name' && /^[1-4]$/.test(e.key)) {
+      } else if (q && q.kind !== 'intro' && r?.pick === null && e.key === '0') round.giveUp()
+      else if (q?.kind === 'name' && /^[1-4]$/.test(e.key)) {
         const option = q.options[Number(e.key) - 1]
         if (option) round.answer(option.id)
       }

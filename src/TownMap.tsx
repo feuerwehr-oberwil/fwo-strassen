@@ -18,8 +18,11 @@ import { cutLine, segmentDistance, type BBox, type LngLat, type Town } from './t
 
 /** Extra lines (house-number sections) or points (street ends) drawn on top, pickable by `key`. */
 export type Overlay = { key: number; geometry: Geometry; color: string }
-/** A badge on the map: a name above a line, or a round numbered `pin` on it. */
-export type Label = { text: string; color: string; at: Geometry; pin?: boolean }
+/**
+ * A badge on the map: a name above a line, or a round numbered `pin` on it. `muted`: a point of
+ * reference (grey on white), not part of the question.
+ */
+export type Label = { text: string; color: string; at: Geometry; pin?: boolean; muted?: boolean }
 
 export type TownMapProps = {
   town: Town
@@ -54,6 +57,14 @@ export type Padding = { top: number; bottom: number; left: number; right: number
 const TAP_RADIUS = 18 // px
 /** Breathing room the callers add to their padding; labels may use it. */
 export const UI_GAP = 16
+/** Where a pin may step aside (px) when it would cover another label; a name label stays put. */
+const PIN_STEPS: [number, number][] = [
+  [0, 0],
+  [0, -28],
+  [0, 28],
+  [-28, 0],
+  [28, 0],
+]
 const NO_OVERLAYS: Overlay[] = []
 const NO_LABELS: Label[] = []
 const OVERLAY_HIT = ['overlay-hit', 'overlay-points-hit']
@@ -497,22 +508,33 @@ function showHover(m: MapLibre, geometry: Geometry | undefined) {
 }
 
 /**
- * Shows labels in priority order and hides each one that would cover an earlier label or sit
- * under the UI around the map (the fit padding, minus its breathing room).
+ * Shows labels in priority order. A pin that would cover an earlier label steps aside a little
+ * (PIN_STEPS); a label that still collides, or would sit under the UI around the map (the fit
+ * padding, minus its breathing room), is hidden.
  */
 function declutter(m: MapLibre, markers: Marker[], pad: Padding) {
   const box = m.getContainer().getBoundingClientRect()
   const [top, bottom] = [box.top + pad.top - UI_GAP, box.bottom - pad.bottom + UI_GAP]
   const shown: DOMRect[] = []
+  const free = (r: DOMRect) =>
+    r.top >= top &&
+    r.bottom <= bottom &&
+    !shown.some((o) => r.left < o.right + 2 && o.left < r.right + 2 && r.top < o.bottom + 2 && o.top < r.bottom + 2)
   for (const mk of markers) {
     const el = mk.getElement()
     el.style.visibility = 'visible'
-    const r = el.getBoundingClientRect()
-    const overlaps = shown.some(
-      (o) => r.left < o.right + 2 && o.left < r.right + 2 && r.top < o.bottom + 2 && o.top < r.bottom + 2,
-    )
-    if (overlaps || r.top < top || r.bottom > bottom) el.style.visibility = 'hidden'
-    else shown.push(r)
+    // measure where the label sits without any step, then try the steps on paper
+    const { x: ox, y: oy } = mk.getOffset()
+    const [dx0, dy0] = el.dataset.pin ? [ox, oy] : [0, 0]
+    const r0 = el.getBoundingClientRect()
+    const steps = el.dataset.pin ? PIN_STEPS : [[0, 0] as const]
+    const step = steps.find(([dx, dy]) => free(new DOMRect(r0.x - dx0 + dx, r0.y - dy0 + dy, r0.width, r0.height)))
+    if (!step) el.style.visibility = 'hidden'
+    else {
+      const [dx, dy] = step
+      if (el.dataset.pin && (dx !== ox || dy !== oy)) mk.setOffset([dx, dy])
+      shown.push(new DOMRect(r0.x - dx0 + dx, r0.y - dy0 + dy, r0.width, r0.height))
+    }
   }
 }
 
@@ -527,12 +549,15 @@ function stationElement(): HTMLElement {
   return el
 }
 
-function badge({ text, color, pin }: Label): HTMLElement {
+function badge({ text, color, pin, muted }: Label): HTMLElement {
   const el = document.createElement('div')
   el.className = pin
     ? 'pointer-events-none grid size-6 place-items-center rounded-full text-xs font-extrabold text-white shadow ring-2 ring-white'
-    : 'pointer-events-none rounded-md px-1.5 py-0.5 text-xs font-bold whitespace-nowrap text-white shadow'
-  el.style.background = color
+    : muted
+      ? 'pointer-events-none rounded-md border border-stone-300 bg-white/90 px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-stone-600'
+      : 'pointer-events-none rounded-md px-1.5 py-0.5 text-xs font-bold whitespace-nowrap text-white shadow'
+  if (!muted) el.style.background = color
+  if (pin) el.dataset.pin = '1'
   el.textContent = text
   return el
 }

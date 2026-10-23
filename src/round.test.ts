@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Cards } from './progress'
-import { INTRO_BATCH, isCorrect, makeQuestion, pickRound, planRound, roundKeys } from './round'
+import { GIVE_UP, INTRO_BATCH, isCorrect, makeQuestion, pickRound, planRound, roundKeys } from './round'
 import type { Item } from './town'
 
 const streets = (n: number) => Array.from({ length: n }, (_, i) => `find:s${i}`)
@@ -112,5 +112,14 @@ describe('house numbers', () => {
     expect(q.kind).toBe('start')
     if (q.kind !== 'start') return
     expect([isCorrect(q, 0), isCorrect(q, 1)]).toEqual([true, false])
+  })
+
+  it('counts a pass («Weiss nicht») as wrong for every kind of question', () => {
+    const qs = [
+      makeQuestion('find:plain', [plain]),
+      makeQuestion('nr:long:1-9', [long]),
+      makeQuestion('start:short', [short]),
+    ]
+    expect(qs.map((q) => q.kind !== 'intro' && isCorrect(q, GIVE_UP))).toEqual([false, false, false])
   })
 })
