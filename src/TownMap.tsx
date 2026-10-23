@@ -46,6 +46,10 @@ export type TownMapProps = {
   /** What a tap selects. Taps are ignored when no handler is given. */
   onPickItem?: (id: string) => void
   onPickOverlay?: (key: number) => void
+  /** The map can be rotated (two fingers, or right/ctrl-drag) to match the driving direction; `bearing` in degrees. */
+  onBearing?: (bearing: number) => void
+  /** Turns the map back north whenever it changes. */
+  northKey?: number
 }
 
 // maplibre can't find its worker once bundled; ship it as a plain asset instead.
@@ -90,6 +94,8 @@ export function TownMap({
   route,
   onPickItem,
   onPickOverlay,
+  onBearing,
+  northKey = 0,
 }: TownMapProps) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<MapLibre | null>(null)
@@ -97,17 +103,17 @@ export function TownMap({
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading')
   const lastPadding = useRef<Padding>({ top: 0, bottom: 0, left: 0, right: 0 })
   const markers = useRef<Marker[]>([])
-  const live = useRef({ onPickItem, onPickOverlay, overlays })
+  const live = useRef({ onPickItem, onPickOverlay, overlays, onBearing })
   /** What the mouse is over (`i:<id>` / `o:<key>`), so the hover outline only redraws on change. */
   const hovered = useRef('')
   useEffect(() => {
-    live.current = { onPickItem, onPickOverlay, overlays }
+    live.current = { onPickItem, onPickOverlay, overlays, onBearing }
     // answered: nothing to pick any more, so drop the hover outline
     if (!onPickItem && !onPickOverlay && map.current) {
       hovered.current = ''
       showHover(map.current, undefined)
     }
-  }, [onPickItem, onPickOverlay, overlays])
+  }, [onPickItem, onPickOverlay, overlays, onBearing])
 
   // Create the map once.
   useEffect(() => {
@@ -121,14 +127,15 @@ export function TownMap({
       maxBounds: [w - 0.05, s - 0.05, e + 0.05, n + 0.05],
       minZoom: 11.5,
       maxZoom: 18,
-      dragRotate: false,
+      // rotation yes (the driver's view), tilt no
       pitchWithRotate: false,
       attributionControl: false, // the app shows «© swisstopo» where the UI leaves room
       // phones report 3× pixels; 2× looks the same here and renders much faster
       pixelRatio: Math.min(window.devicePixelRatio, 2),
       fadeDuration: 0,
     })
-    m.touchZoomRotate.disableRotation()
+    m.touchPitch.disable()
+    m.on('rotate', () => live.current.onBearing?.(m.getBearing()))
     new Marker({ element: stationElement() }).setLngLat(town.station).addTo(m)
     map.current = m
     if (import.meta.env.DEV) Object.assign(window, { townMap: m }) // for poking at it in devtools
@@ -183,6 +190,7 @@ export function TownMap({
     m.on('dblclick', cancelTap)
     m.on('zoomstart', cancelTap)
     m.on('movestart', cancelTap)
+    m.on('rotatestart', cancelTap)
     m.on('move', () => declutter(m, markers.current, lastPadding.current))
     return () => {
       clearTimeout(pendingTap)
@@ -273,10 +281,17 @@ export function TownMap({
     const m = map.current
     if (!m) return
     lastPadding.current = padding()
-    m.fitBounds([w, s, e, n], { padding: lastPadding.current, maxZoom: 16.5, duration: 600 })
+    // a rotated map stays rotated: the box is fitted at the current bearing
+    const bearing = m.getBearing()
+    m.fitBounds([w, s, e, n], { padding: lastPadding.current, maxZoom: 16.5, duration: 600, bearing })
     // padding is a fresh function each render; only refit when the box or refitKey changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refitKey, w, s, e, n])
+
+  // Back to north on request.
+  useEffect(() => {
+    if (northKey) map.current?.resetNorth({ duration: 400 })
+  }, [northKey])
 
   // maplibre sets `position: relative` on the container, so it sits inside an absolute wrapper
   return (

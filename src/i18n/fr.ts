@@ -23,6 +23,7 @@ export const fr = {
       `Apprendre les rues et numéros ${of(town)} – pour les chauffeurs (${brand})`,
   },
   recentre: 'Recentrer la carte',
+  north: 'Remettre le nord en haut',
   quit: 'Terminer la série',
 
   home: {

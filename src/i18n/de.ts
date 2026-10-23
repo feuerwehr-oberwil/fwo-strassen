@@ -19,6 +19,7 @@ export const de = {
       `Strassen und Hausnummern von ${town} lernen – für die Fahrer der ${brand}`,
   },
   recentre: 'Karte zurücksetzen',
+  north: 'Nach Norden drehen',
   quit: 'Runde beenden',
 
   home: {

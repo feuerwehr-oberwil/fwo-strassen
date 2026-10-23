@@ -19,6 +19,7 @@ export const en = {
       `Learn the streets and house numbers of ${town} – for the drivers of ${brand}`,
   },
   recentre: 'Reset map',
+  north: 'Point north',
   quit: 'End round',
 
   home: {

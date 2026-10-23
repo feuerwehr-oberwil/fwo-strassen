@@ -43,6 +43,9 @@ export default function App({ data }: { data: TownData }) {
   const focusFromMap = current && focusState.fromMap
   const setFocus = (value: number | null, fromMap = false) => setFocusState({ step, value, fromMap })
   const [recentred, setRecentred] = useState(0)
+  // the map's rotation (degrees); the compass shows while it is off north and turns it back
+  const [bearing, setBearing] = useState(0)
+  const [northed, setNorthed] = useState(0)
 
   const view =
     round.round &&
@@ -61,7 +64,7 @@ export default function App({ data }: { data: TownData }) {
   const mapBox = useRef<HTMLDivElement>(null)
   const topUi = useRef<HTMLDivElement>(null)
   const bottomUi = useRef<HTMLDivElement>(null)
-  const recentreButton = useRef<HTMLButtonElement>(null)
+  const mapButtons = useRef<HTMLDivElement>(null)
   // keep the fitted box clear of the question card and the bottom sheet, whatever their height
   const padding = (): Padding => {
     const box = mapBox.current?.getBoundingClientRect()
@@ -70,10 +73,10 @@ export default function App({ data }: { data: TownData }) {
       return { top: p, bottom: p, left: p, right: p }
     }
     const top = (topUi.current?.getBoundingClientRect().bottom ?? box.top) - box.top + UI_GAP
-    // the reset button floats above the sheet; keep it off the route's ends too
+    // the map buttons float above the sheet; keep them off the route's ends too
     const sheetTop = Math.min(
       bottomUi.current?.getBoundingClientRect().top ?? box.bottom,
-      recentreButton.current?.getBoundingClientRect().top ?? box.bottom,
+      mapButtons.current?.getBoundingClientRect().top ?? box.bottom,
     )
     const bottom = box.bottom - sheetTop + UI_GAP
     // a tall sheet (many misses) may cover part of the fit, but the map keeps at least MIN_MAP px
@@ -87,18 +90,34 @@ export default function App({ data }: { data: TownData }) {
         baseStyle={basemap}
         padding={padding}
         refitKey={`${step}:${focusFromMap ? 'map' : focus}:${recentred}`}
+        onBearing={setBearing}
+        northKey={northed}
         {...((view?.map ?? { highlights: [], fit: overview }) satisfies MapView)}
       />
     </div>
   )
-  const recentre = (className: string) => (
-    <button
-      ref={recentreButton}
-      onClick={() => setRecentred((n) => n + 1)}
-      aria-label={t.recentre}
-      title={t.recentre}
-      className={`pointer-events-auto grid size-11 place-items-center rounded-xl bg-white text-stone-700 shadow-md ${className}`}
-    >
+  const mapButton = 'pointer-events-auto grid size-11 place-items-center rounded-xl bg-white text-stone-700 shadow-md'
+  // compass (only while the map is turned) above the reset button
+  const mapControls = (className: string) => (
+    <div ref={mapButtons} className={`flex flex-col gap-2 ${className}`}>
+      {bearing !== 0 && (
+        <button onClick={() => setNorthed((n) => n + 1)} aria-label={t.north} title={t.north} className={mapButton}>
+          <svg
+            viewBox="0 0 24 24"
+            className="size-6 transition-transform"
+            style={{ transform: `rotate(${-bearing}deg)` }}
+            aria-hidden="true"
+          >
+            <path d="M12 2l4.5 10h-9z" fill="#dc2626" />
+            <path d="M12 22l-4.5-10h9z" fill="#a8a29e" />
+          </svg>
+        </button>
+      )}
+      {recentre}
+    </div>
+  )
+  const recentre = (
+    <button onClick={() => setRecentred((n) => n + 1)} aria-label={t.recentre} title={t.recentre} className={mapButton}>
       <svg
         viewBox="0 0 24 24"
         className="size-5"
@@ -169,7 +188,7 @@ export default function App({ data }: { data: TownData }) {
         </aside>
         <div className="relative flex-1">
           {map}
-          {view && <div className="absolute top-3 right-3">{recentre('')}</div>}
+          {view && mapControls('absolute top-3 right-3')}
           <div className="absolute right-1 bottom-1 flex">{credit}</div>
         </div>
       </main>
@@ -187,7 +206,7 @@ export default function App({ data }: { data: TownData }) {
             <QuestionCard view={view} round={round} quit={quit} />
           </div>
           <div ref={bottomUi} className="pointer-events-none absolute inset-x-0 bottom-0">
-            {recentre('absolute -top-14 right-3')}
+            {mapControls('absolute right-3 bottom-[calc(100%+0.75rem)]')}
             {view.body ? (
               // a bit denser than elsewhere (list rows 36 px), so the map keeps more room
               <div className="pointer-events-auto flex max-h-[55dvh] flex-col gap-2 overflow-y-auto rounded-t-2xl bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_#0002] [&_.min-h-11]:min-h-9">
