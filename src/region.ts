@@ -25,6 +25,10 @@ export const Region = type({
   fixes: {
     /** Closures missing in OSM ([lng, lat]); the nearest road node is closed. */
     barriers: type({ at: ['number', 'number'], 'note?': 'string' }).array(),
+    /** Roads in OSM that are really footpaths ([lng, lat] on one); the nearest way is dropped. */
+    footpaths: type({ at: ['number', 'number'], 'note?': 'string' })
+      .array()
+      .default(() => []),
     /** Residential streets driven as access roads anyway (timed like a tertiary road). */
     accessRoads: 'string[]',
   },

@@ -23,6 +23,12 @@
   ],
   "fixes": {
     "barriers": [{ "at": [7.56305, 47.52363], "note": "Stallenstrasse between Amselstrasse and Meisenstrasse" }],
+    "footpaths": [
+      {
+        "at": [7.54452, 47.51062],
+        "note": "Louisrebenweg from Bielstrasse: a footpath, the street is reached via Benkenstrasse"
+      }
+    ],
     "accessRoads": ["Talstrasse"]
   }
 }

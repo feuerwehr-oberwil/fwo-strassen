@@ -61,7 +61,7 @@ export type Osm = {
 }
 
 /** What the drivers know and OSM doesn't, from region.json `fixes`, plus the metric CRS to route in. */
-export type Options = { crs: string; barriers: LngLat[]; accessRoads: string[] }
+export type Options = { crs: string; barriers: LngLat[]; footpaths: LngLat[]; accessRoads: string[] }
 
 /** All highway ways in the bbox with their nodes, downloaded into `dir` once per area. */
 async function overpass(bbox: Town['bbox'], brand: string, dir: string): Promise<Osm> {
@@ -141,7 +141,8 @@ class Heap {
 
 /**
  * Directed road graph in metres: node -> [next node, seconds], plus the names of the drivable ways
- * through each node. Barrier nodes have no edges, so routes go around them.
+ * through each node. Barrier nodes have no edges, so routes go around them; footpath fixes take
+ * their whole way out, name included, so a street is no longer reached over it.
  */
 export function network(osm: Osm, options: Options) {
   const toMetric = proj4('WGS84', options.crs)
@@ -163,11 +164,20 @@ export function network(osm: Osm, options: Options) {
     if (edges) edges.push([b, secs])
     else out.set(a, [[b, secs]])
   }
-  for (const el of osm.elements) {
-    if (el.type !== 'way') continue
-    const kmh = speed(el.tags, accessRoads)
-    if (kmh === null) continue
-    const { tags, nodes } = el
+  const ways = osm.elements.flatMap((el) => (el.type === 'way' && speed(el.tags, accessRoads) !== null ? [el] : []))
+  // roads the drivers know as footpaths: the drivable way nearest each point, if it runs this close
+  const footpaths = new Set(
+    options.footpaths.flatMap((at) => {
+      const p = toMetric.forward(at)
+      const [m, id] = ways
+        .map((w) => [pointLinesDistance(p, [w.nodes.map((n) => xy.get(n)!)]), w.id] as const)
+        .reduce((a, b) => (b[0] < a[0] ? b : a))
+      return m < 30 ? [id] : []
+    }),
+  )
+  for (const { id, tags, nodes } of ways) {
+    const kmh = speed(tags, accessRoads)
+    if (kmh === null || footpaths.has(id)) continue
     const oneway = tags.oneway ?? (tags.junction === 'roundabout' ? 'roundabout' : 'no')
     for (const [i, a] of nodes.slice(0, -1).entries()) {
       const b = nodes[i + 1]!
@@ -349,6 +359,7 @@ export async function routes(town: Town, region: Region, crs: string, cache: str
   return buildRoutes(town, osm, {
     crs,
     barriers: region.fixes.barriers.map((b) => b.at),
+    footpaths: region.fixes.footpaths.map((f) => f.at),
     accessRoads: region.fixes.accessRoads,
   })
 }

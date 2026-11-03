@@ -69,7 +69,8 @@ The CLI lives in `cli/`, runs from source with plain Node (type stripping) and s
 
 `region.json` sets the town up: name, brand, language, data source (swisstopo BFS number), the
 station's address, the Hauptachsen (`axes`: streets that cut long streets into house-number
-sections) and local route fixes (barriers OSM lacks, residential streets used as access roads). `strassen-trainer init` writes it; the data pipeline reads it, and `build` writes the page
+sections) and local route fixes (barriers OSM lacks, roads that are really footpaths, residential
+streets used as access roads). `strassen-trainer init` writes it; the data pipeline reads it, and `build` writes the page
 title, web manifest and `config.json` (name, brand, language – what the app shows) from it. The shape
 is the ArkType schema in `src/region.ts`; every command stops with a readable error when region.json
 doesn't match it.
@@ -124,7 +125,8 @@ pnpm test          # includes the pipeline and CLI tests
 Routes are the fastest way for a TLF: only roads a truck can use, big access roads preferred, every
 turn costs time, one-way streets respected, no route through a barrier. Footpaths and fields get a
 route to the nearest drivable point. What the drivers know and OpenStreetMap doesn't (missing
-barriers, residential streets they use as access roads) goes into `fixes` in `region.json`.
+barriers, roads that are really footpaths, residential streets they use as access roads) goes into
+`fixes` in `region.json`.
 
 Sources: swisstopo «Amtliches Strassenverzeichnis» and «Amtliches Gebäudeadressverzeichnis»
 (BFS-Nr. 2771); road network © OpenStreetMap contributors (ODbL).
