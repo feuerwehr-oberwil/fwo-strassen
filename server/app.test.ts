@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createApp, RATE } from './app.ts'
+import { createApp, RATE, rateLimiter } from './app.ts'
 
 const KEY = 'a'.repeat(64)
 const OTHER = 'b'.repeat(64)
@@ -33,6 +33,17 @@ describe('backup API', () => {
     for (let i = 0; i < RATE; i++) await get('1.2.3.4')
     expect((await get('1.2.3.4')).status).toBe(429)
     expect((await get('5.6.7.8')).status).toBe(404)
+  })
+
+  it('forgets client IPs a minute after their last request', () => {
+    let t = 0
+    const limited = rateLimiter(() => t)
+    limited('1.2.3.4')
+    t = 30_000
+    limited('5.6.7.8')
+    t = 61_000
+    limited('9.9.9.9')
+    expect(limited.size()).toBe(2) // 1.2.3.4 dropped, 5.6.7.8 still in its window
   })
 
   it('lets only the configured origins call it from a browser', async () => {
