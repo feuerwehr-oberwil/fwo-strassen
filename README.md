@@ -111,6 +111,12 @@ pnpm data routes   # single steps: town, routes, basemap (routes and basemap rea
 pnpm test          # includes the pipeline and CLI tests
 ```
 
+`town.json` records `sourceDate` (swisstopo's export date of the street and address data) and
+`generated` (when the pipeline ran). `.github/workflows/data-refresh.yml` runs `pnpm data` quarterly
+(or by hand) and opens a PR when more than those dates changed. Progress is keyed on street ids and
+house-number ranges, so its description lists removed streets and moved range boundaries – those
+cards are dropped (`pipeline/townDiff.ts`).
+
 - `pipeline/sources/swisstopo.ts` loads a Swiss town: street names (CSV), street lines and named
   areas from the File Geodatabase (read by the small built-in `filegdb.ts`; swisstopo publishes the
   geometry only as FileGDB or INTERLIS) and building addresses (CSV), all in LV95. A source returns

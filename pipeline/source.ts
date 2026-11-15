@@ -7,6 +7,8 @@ import type { Line, Polygon, XY } from './geometry.ts'
 export type SourceData = {
   /** Attribution shown in the app, e.g. «© swisstopo – …». */
   attribution: string
+  /** When the source published this data (YYYY-MM-DD); the older date if it comes in parts. */
+  published: string
   /** proj4 definition of the metric CRS all coordinates are in (e.g. LV95). */
   crs: string
   /** Named streets in a stable order (ties in cross-street order fall back to it). */

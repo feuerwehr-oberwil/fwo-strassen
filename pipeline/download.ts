@@ -8,6 +8,7 @@ import {
   openSync,
   readSync,
   rmSync,
+  utimesSync,
 } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { dirname, join, resolve, sep } from 'node:path'
@@ -30,7 +31,10 @@ export async function cachedZip(url: string, cache: string): Promise<string> {
   return target
 }
 
-/** Extracts a zip (stored or deflated entries, no zip64) into `into`. */
+/**
+ * Extracts a zip (stored or deflated entries, no zip64) into `into`. Each file keeps its entry's
+ * time as mtime, so a source can tell when the data was published (swisstopo's export time).
+ */
 export async function unzip(zip: string, into: string): Promise<void> {
   const dir = resolve(into)
   const fd = openSync(zip, 'r')
@@ -52,8 +56,10 @@ export async function unzip(zip: string, into: string): Promise<void> {
     if (count === 0xffff || cdAt === 0xffffffff) throw new Error(`${zip}: zip64 is not supported`)
     const cd = read(cdAt, cdSize)
     for (let i = 0, at = 0; i < count; i++) {
-      const [method, compressed, nameLen, extraLen, commentLen, localAt] = [
+      const [method, dosTime, dosDate, compressed, nameLen, extraLen, commentLen, localAt] = [
         cd.readUInt16LE(at + 10),
+        cd.readUInt16LE(at + 12),
+        cd.readUInt16LE(at + 14),
         cd.readUInt32LE(at + 20),
         cd.readUInt16LE(at + 28),
         cd.readUInt16LE(at + 30),
@@ -80,8 +86,17 @@ export async function unzip(zip: string, into: string): Promise<void> {
           createWriteStream(out),
         )
       else throw new Error(`${zip}: compression method ${method} is not supported`)
+      const time = fromDos(dosDate, dosTime)
+      utimesSync(out, time, time)
     }
   } finally {
     closeSync(fd)
   }
+}
+
+/** A zip entry's MS-DOS date and time (no time zone; read as UTC). */
+function fromDos(date: number, time: number): Date {
+  return new Date(
+    Date.UTC(1980 + (date >> 9), ((date >> 5) & 15) - 1, date & 31, time >> 11, (time >> 5) & 63, (time & 31) * 2),
+  )
 }

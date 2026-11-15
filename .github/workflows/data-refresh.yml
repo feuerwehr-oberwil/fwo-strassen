@@ -1,0 +1,60 @@
+# Quarterly (and on demand) rebuilds data/ from swisstopo and OpenStreetMap with `pnpm data` and
+# opens a PR when anything but the dates changed. The PR body lists removed streets and changed
+# house-number ranges, because progress cards keyed on them are dropped (pipeline/townDiff.ts).
+name: Data refresh
+
+on:
+  schedule:
+    - cron: '0 5 2 1,4,7,10 *' # 2 Jan / Apr / Jul / Oct, 05:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: cp data/town.json "$RUNNER_TEMP/town-before.json"
+      - run: pnpm data
+      - id: changed
+        # dates alone don't make a refresh
+        run: |
+          if git diff --quiet -I '"(generated|sourceDate)":' -- data; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.changed.outputs.changed == 'true'
+        run: |
+          {
+            echo "Quarterly \`pnpm data\` refresh (swisstopo data of $(node -p "require('./data/town.json').sourceDate"))."
+            echo
+            echo "## What it does to progress"
+            echo
+            node pipeline/townDiff.ts "$RUNNER_TEMP/town-before.json" data/town.json
+            echo
+            echo "Check the lists above before merging: a dropped card means a driver relearns that street or section."
+            echo
+            echo '```'
+            git diff --stat -- data
+            echo '```'
+          } > "$RUNNER_TEMP/body.md"
+      - if: steps.changed.outputs.changed == 'true'
+        run: pnpm test
+      - if: steps.changed.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: data/refresh
+          commit-message: 'Data: quarterly refresh from swisstopo and OpenStreetMap'
+          title: 'Data refresh'
+          body-path: ${{ runner.temp }}/body.md
+          add-paths: data
