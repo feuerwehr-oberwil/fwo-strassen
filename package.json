@@ -40,9 +40,9 @@
     "e2e:tap": "PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1 LD_LIBRARY_PATH=$HOME/.cache/pwlibs/ext/usr/lib/x86_64-linux-gnu node e2e/double-tap.mjs"
   },
   "dependencies": {
-    "@hono/node-server": "^2.1.5",
+    "@hono/node-server": "^2.1.8",
     "arktype": "^2.2.9",
-    "hono": "^4.13.13",
+    "hono": "^4.13.18",
     "proj4": "^2.22.0"
   },
   "devDependencies": {
