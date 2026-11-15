@@ -12,7 +12,7 @@ const region: Region = {
   source: { type: 'swisstopo', bfs: 2765 },
   station: { street: 'Hauptstrasse', number: '1' },
   axes: [],
-  fixes: { barriers: [], accessRoads: [] },
+  fixes: { barriers: [], footpaths: [], accessRoads: [] },
 }
 
 let root = ''
