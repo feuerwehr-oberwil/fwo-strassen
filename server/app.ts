@@ -11,6 +11,7 @@ import { cors } from 'hono/cors'
 export const KEY = /^[0-9a-f]{64}$/
 export const MAX_BYTES = 200_000 // a full set of cards is ~30 KB
 export const RATE = 120 // requests per minute and client IP
+const WINDOW_MS = 60_000
 
 export type Options = {
   /** SQLite file; the default keeps everything in memory (tests). */
@@ -33,14 +34,7 @@ export function createApp({ dbPath = ':memory:', allowedOrigins = [] }: Options 
       'on conflict(code) do update set data = excluded.data, updated_at = excluded.updated_at',
   )
 
-  // sliding-window rate limit per client IP, so guessing PINs is slow
-  const hits = new Map<string, number[]>()
-  const limited = (ip: string) => {
-    const now = Date.now()
-    const recent = (hits.get(ip) ?? []).filter((t) => now - t < 60_000)
-    hits.set(ip, [...recent, now])
-    return recent.length >= RATE
-  }
+  const limited = rateLimiter()
 
   const app = new Hono()
   app.use('*', cors({ origin: allowedOrigins, allowMethods: ['GET', 'PUT'], allowHeaders: ['Content-Type'] }))
@@ -73,6 +67,29 @@ export function createApp({ dbPath = ':memory:', allowedOrigins = [] }: Options 
   })
 
   return app
+}
+
+/**
+ * Sliding-window rate limit per client IP, so guessing PINs is slow: the returned function records
+ * a hit and says whether `ip` is over `RATE` in the last minute. Once a minute it drops IPs with no
+ * recent hits, so the map doesn't grow with every address ever seen (`size` is for tests).
+ */
+export function rateLimiter(now = Date.now) {
+  const hits = new Map<string, number[]>()
+  let swept = now()
+  return Object.assign(
+    (ip: string) => {
+      const t = now()
+      if (t - swept >= WINDOW_MS) {
+        for (const [k, times] of hits) if (t - times.at(-1)! >= WINDOW_MS) hits.delete(k)
+        swept = t
+      }
+      const recent = (hits.get(ip) ?? []).filter((at) => t - at < WINDOW_MS)
+      hits.set(ip, [...recent, t])
+      return recent.length >= RATE
+    },
+    { size: () => hits.size },
+  )
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
