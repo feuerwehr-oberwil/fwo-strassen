@@ -1,3 +1,4 @@
+import { statSync } from 'node:fs'
 import type { Region } from '../../src/region.ts'
 import { cachedZip } from '../download.ts'
 import type { Line, Polygon, XY } from '../geometry.ts'
@@ -85,6 +86,8 @@ export async function swisstopo(region: Region, cache: string): Promise<SourceDa
 
   return {
     attribution: '© swisstopo – Amtliches Strassenverzeichnis, Amtliches Gebäudeadressverzeichnis',
+    // swisstopo exports daily; the zip entry time (kept as mtime by unzip) is the export date
+    published: [streetCsv, addressCsv].map((f) => statSync(f).mtime.toISOString().slice(0, 10)).toSorted()[0]!,
     crs: LV95,
     streets: ids.flatMap((id) => {
       const shape = lines.get(id)

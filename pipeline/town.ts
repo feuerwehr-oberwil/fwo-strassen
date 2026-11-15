@@ -252,7 +252,11 @@ export function crossStreets(section: Line[], ownId: string, streets: SourceData
  * The town as the app loads it (data/town.json), from a source's raw data. `axes`: the
  * Hauptachsen from region.json, by street name; long streets are cut where they meet them.
  */
-export function buildTown(data: SourceData, axes: readonly string[] = []): Town {
+export function buildTown(
+  data: SourceData,
+  axes: readonly string[] = [],
+  generated = new Date().toISOString().slice(0, 10),
+): Town {
   const missing = axes.filter((name) => !data.streets.some((s) => s.name === name))
   if (missing.length) throw new Error(`region.json axes: no street ${missing.map((n) => `«${n}»`).join(', ')}`)
   const axisStreets = data.streets.filter((s) => axes.includes(s.name))
@@ -354,6 +358,8 @@ export function buildTown(data: SourceData, axes: readonly string[] = []): Town 
   const items = [...streets, ...areas].toSorted((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
   return {
     source: data.attribution,
+    sourceDate: data.published,
+    generated,
     bbox: bbox([...data.streets.flatMap((s) => s.lines.flat()), ...data.areas.flatMap((a) => a.polygons.flat(2))]),
     items,
     station: lngLat(data.station),

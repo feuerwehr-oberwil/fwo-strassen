@@ -32,6 +32,9 @@ export type Item = {
 
 export type Town = {
   source: string
+  /** When the source published the street and address data, and when the pipeline ran (YYYY-MM-DD). */
+  sourceDate: string
+  generated: string
   bbox: BBox
   items: Item[]
   /** Feuerwehrmagazin, the only marker on the map. */
