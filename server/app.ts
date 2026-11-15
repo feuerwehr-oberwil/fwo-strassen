@@ -21,8 +21,7 @@ export type Options = {
 
 /**
  * The backup API: `GET /health`, `GET /progress/:key`, `PUT /progress/:key` with `{cards: {...}}`.
- * Run standalone by server/main.ts; the table is the same one the earlier FastAPI service used, so an
- * existing progress.db keeps working.
+ * Run standalone by server/main.ts; rate limit and key check run as middleware before both routes.
  */
 export function createApp({ dbPath = ':memory:', allowedOrigins = [] }: Options = {}) {
   const db = new DatabaseSync(dbPath)

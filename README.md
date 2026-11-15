@@ -31,7 +31,8 @@ Phones in landscape and screens ≥ 1024 px get a sidebar next to the map. With 
 
 The map is swisstopo's light base map (buildings, forest, water) with every label removed. Progress
 is stored per device in `localStorage` (spaced repetition, Leitner boxes) and decides which questions
-a round asks. No backend, no login.
+a round asks. The app itself is static; an optional [progress backup](#progress-backup) (name + 4-digit
+PIN, no account) keeps it across devices.
 
 ## Set up your town
 
@@ -95,7 +96,9 @@ node server/main.ts                          # local on :8000, then: VITE_BACKUP
 Oberwil runs it on Railway (project `fwo-strassen`, service `backup`): GitHub Actions builds
 `server/Dockerfile` into `ghcr.io/feuerwehr-oberwil/fwo-strassen-backup` on every server change
 (`.github/workflows/backup-image.yml`), the service runs that image (`railway redeploy --service backup`
-picks up a new one), SQLite on a volume at `/data`, app origins in `ALLOWED_ORIGINS`.
+picks up a new one), SQLite on a volume at `/data`, app origins in `ALLOWED_ORIGINS` – just
+`https://strassen.fwo.li`, the Pages custom domain (the `github.io` address redirects there, so the app
+never runs on it).
 
 ## Data
 

@@ -23,8 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# backup server
-server/.venv
+# backup server (local progress.db)
 *.db
 
 # prebuilt app and compiled CLI (npm package), town data downloads
