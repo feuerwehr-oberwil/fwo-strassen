@@ -1,0 +1,31 @@
+# Turns on GitHub auto-merge for Dependabot PRs that are npm minor or patch updates, or any
+# GitHub Actions update. npm majors wait for a person. GitHub then merges the PR once the required
+# checks on main pass. The step only asks for auto-merge and never merges by itself: without the
+# repo setting «Allow auto-merge», or without required checks on main, it fails and nothing merges.
+name: Dependabot auto-merge
+
+on: pull_request
+
+permissions:
+  contents: write # both are needed to turn on auto-merge
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      # reads the update from Dependabot's commit; stops when Dependabot did not sign that commit
+      - id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+      - if: >-
+          steps.metadata.outputs.package-ecosystem == 'github_actions' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        # the mutation, not `gh pr merge --auto`: gh merges at once when no required check is pending
+        run: >-
+          gh api graphql -f pr="$PR_ID" -f query='mutation($pr: ID!) {
+          enablePullRequestAutoMerge(input: { pullRequestId: $pr, mergeMethod: MERGE }) { clientMutationId } }'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_ID: ${{ github.event.pull_request.node_id }}
