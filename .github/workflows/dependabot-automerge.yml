@@ -1,18 +1,29 @@
 # Turns on GitHub auto-merge for Dependabot PRs that are npm minor or patch updates, or any
 # GitHub Actions update. npm majors wait for a person. GitHub then merges the PR once the required
-# checks on main pass. The step only asks for auto-merge and never merges by itself: without the
-# repo setting «Allow auto-merge», or without required checks on main, it fails and nothing merges.
+# checks on main pass. This workflow only asks for auto-merge and never merges by itself: without
+# the repo setting «Allow auto-merge», or with no requirement on main that is still open, the
+# request fails and nothing merges.
+#
+# GitHub makes the merge with this workflow's token and starts no workflow run for it, so Deploy
+# and Backup image do not run. An auto-merged update goes live with the next push to main, or with
+# a manual run of Deploy.
 name: Dependabot auto-merge
 
 on: pull_request
 
 permissions:
-  contents: write # both are needed to turn on auto-merge
+  contents: write # both are needed to turn auto-merge on or off
   pull-requests: write
 
+env:
+  GH_TOKEN: ${{ github.token }}
+  PR_ID: ${{ github.event.pull_request.node_id }}
+
 jobs:
-  auto-merge:
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+  # Dependabot pushed: ask for auto-merge when the update is small.
+  enable:
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       # reads the update from Dependabot's commit; stops when Dependabot did not sign that commit
@@ -22,10 +33,22 @@ jobs:
           steps.metadata.outputs.package-ecosystem == 'github_actions' ||
           steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
           steps.metadata.outputs.update-type == 'version-update:semver-patch'
-        # the mutation, not `gh pr merge --auto`: gh merges at once when no required check is pending
+        # the mutation, not `gh pr merge --auto`: gh merges at once when no required check is open
         run: >-
-          gh api graphql -f pr="$PR_ID" -f query='mutation($pr: ID!) {
-          enablePullRequestAutoMerge(input: { pullRequestId: $pr, mergeMethod: MERGE }) { clientMutationId } }'
+          gh api graphql -f pr="$PR_ID" -f head="$HEAD_SHA" -f query='
+          mutation($pr: ID!, $head: GitObjectID!) { enablePullRequestAutoMerge(
+          input: { pullRequestId: $pr, expectedHeadOid: $head, mergeMethod: MERGE }
+          ) { clientMutationId } }'
         env:
-          GH_TOKEN: ${{ github.token }}
-          PR_ID: ${{ github.event.pull_request.node_id }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+
+  # A person pushed to a Dependabot PR (or reopened it): turn auto-merge off, so their commits
+  # wait for a person. GitHub keeps auto-merge on after a push by someone with write access.
+  disable:
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - run: >-
+          gh api graphql -f pr="$PR_ID" -f query='mutation($pr: ID!) {
+          disablePullRequestAutoMerge(input: { pullRequestId: $pr }) { clientMutationId } }'
