@@ -21,7 +21,7 @@ env:
 
 jobs:
   # Dependabot pushed: ask for auto-merge when the update is small.
-  enable:
+  automerge-on:
     if: >-
       github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
@@ -44,7 +44,9 @@ jobs:
 
   # A person pushed to a Dependabot PR (or reopened it): turn auto-merge off, so their commits
   # wait for a person. GitHub keeps auto-merge on after a push by someone with write access.
-  disable:
+  # Make `automerge-off` a required check on main, next to CI's `check`: then such a PR cannot
+  # merge before this job has run. On every other PR the job is skipped, which counts as passed.
+  automerge-off:
     if: >-
       github.event.pull_request.user.login == 'dependabot[bot]' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
