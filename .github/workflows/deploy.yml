@@ -1,9 +1,13 @@
-# Builds the static site and publishes it to GitHub Pages on every push to main.
+# Builds the static site and publishes it to GitHub Pages on every push to main, and once a day:
+# a merge made by GitHub auto-merge (Dependabot) uses the workflow token and starts no push run,
+# so the daily run takes such a merge live by the next morning.
 name: Deploy
 
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '30 2 * * *' # 02:30 UTC daily
   workflow_dispatch:
 
 # The build job only reads the repo; the deploy job below gets the Pages rights.
