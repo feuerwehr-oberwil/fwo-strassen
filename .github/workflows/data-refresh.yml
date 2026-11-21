@@ -11,6 +11,7 @@ on:
 permissions:
   contents: write # create-pull-request pushes the data/refresh branch
   pull-requests: write # ... and opens or updates the PR
+  actions: write # start CI on the PR branch (see the last step)
 
 jobs:
   refresh:
@@ -58,3 +59,12 @@ jobs:
           title: 'Data refresh'
           body-path: ${{ runner.temp }}/body.md
           add-paths: data
+      # A PR opened with the workflow token starts no workflow run, so the required checks `check`
+      # and `automerge-off` would never report and the PR stays blocked. A manual (dispatch) run
+      # is the exception: both report on the branch head.
+      - if: steps.changed.outputs.changed == 'true'
+        run: |
+          gh workflow run ci.yml --ref data/refresh
+          gh workflow run dependabot-automerge.yml --ref data/refresh
+        env:
+          GH_TOKEN: ${{ github.token }}
