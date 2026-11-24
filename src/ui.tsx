@@ -24,7 +24,7 @@ export function Button({
       onClick={onClick}
       disabled={disabled}
       autoFocus={autoFocus}
-      className={`relative flex min-h-12 w-full items-center overflow-hidden gap-3 rounded-xl px-4 py-3 text-left font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 disabled:cursor-default ${tones[tone]}`}
+      className={`relative flex min-h-12 w-full items-center overflow-hidden gap-3 rounded-xl px-4 py-3 text-left font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 disabled:cursor-default disabled:opacity-40 ${tones[tone]}`}
     >
       {children}
     </button>

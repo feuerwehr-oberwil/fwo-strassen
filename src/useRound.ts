@@ -14,9 +14,9 @@ import {
 } from './round'
 import { byImportance, type Town } from './town'
 
-/** `intro`: show new streets before asking them. */
-export type Settings = { mode: Mode; withNumbers: boolean; intro: boolean }
-const DEFAULTS: Settings = { mode: 'find', withNumbers: false, intro: true }
+/** `intro`: show new streets before asking them. `repeatOnly`: ask only questions answered before. */
+export type Settings = { mode: Mode; withNumbers: boolean; intro: boolean; repeatOnly: boolean }
+const DEFAULTS: Settings = { mode: 'find', withNumbers: false, intro: true, repeatOnly: false }
 /** An answer: the tapped item id, the section index for house-number questions, or GIVE_UP. */
 export type Pick = string | number
 /** A right answer moves on by itself after this long. */
@@ -114,8 +114,10 @@ export function useRound(town: Town, progress: Progress) {
     configure(patch: Partial<Settings>) {
       setSettings({ ...settings, ...patch })
     },
+    /** Starts a round; with `repeatOnly`, from known questions only (Home disables it when there are none). */
     start() {
-      const picks = pickRound(keys, progress.cards, Date.now())
+      const pool = settings.repeatOnly ? keys.filter((k) => progress.cards[k]) : keys
+      const picks = pickRound(pool, progress.cards, Date.now())
       begin(planRound(picks, progress.cards, settings.intro), false)
     },
     /** A round of just the questions the finished round got wrong. */
