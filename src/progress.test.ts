@@ -11,6 +11,11 @@ describe('review', () => {
     expect(review({ box: 4, due: 0 }, false, 100)).toEqual({ box: 0, due: 100 + INTERVALS[0], at: 100 })
   })
 
+  it('keeps box and due date for a right answer before the card is due', () => {
+    expect(review({ box: 3, due: 50 }, true, 10)).toEqual({ box: 3, due: 50, at: 10 })
+    expect(review({ box: 3, due: 50 }, false, 10).box).toBe(0)
+  })
+
   it('stops at the last box', () => {
     expect(review({ box: 5, due: 0 }, true, 0).box).toBe(5)
   })

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 // Leitner-style spaced repetition. Every question has a key (e.g. "find:<id>") and a card.
 // A right answer moves the card up one box (longer wait), a wrong one back to box 0.
+// A right answer before the card is due changes nothing, so practising early never stretches the waits.
 // `at` = when it was last answered; used to merge progress from the backup.
 export type Card = { box: number; due: number; at?: number }
 export type Cards = Record<string, Card>
@@ -16,6 +17,7 @@ export const LEARNED_BOX = 3
 const KNOWN_BOX = 2
 
 export function review(card: Card | undefined, correct: boolean, now: number): Card {
+  if (card && correct && card.due > now) return { ...card, at: now }
   const box = !correct ? 0 : card ? Math.min(card.box + 1, INTERVALS.length - 1) : KNOWN_BOX
   return { box, due: now + INTERVALS[box]!, at: now }
 }
