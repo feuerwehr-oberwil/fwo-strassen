@@ -8,7 +8,7 @@ import type { Line, XY } from '../geometry.ts'
 //
 //   for (const row of readTable(gdb, 'PURE_LIN')) if (row.get('STR_ESID') === 42) row.shape()
 
-export type Value = number | string | null
+type Value = number | string | null
 /** A shape's parts: points (one part with one point), line parts or polygon rings. */
 export type Shape = { kind: 'point' | 'line' | 'polygon'; parts: Line[] }
 

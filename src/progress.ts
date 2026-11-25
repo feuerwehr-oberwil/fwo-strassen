@@ -12,7 +12,7 @@ const DAY = 24 * 60 * MINUTE
 /** Wait before a card in box i is asked again. */
 export const INTERVALS = [MINUTE, 10 * MINUTE, DAY, 3 * DAY, 7 * DAY, 21 * DAY] as const
 /** From this box on a card counts as «sicher». */
-export const LEARNED_BOX = 3
+const LEARNED_BOX = 3
 /** A street you get right the very first time is known already: skip the 10-minute repeat. */
 const KNOWN_BOX = 2
 

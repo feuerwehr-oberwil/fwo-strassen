@@ -1,0 +1,6 @@
+{
+  // Unused files, exports, types and dependencies – `pnpm lint:dead` (CI job static-analysis).
+  "$schema": "https://unpkg.com/knip@6.48.0/schema.json",
+  // the backup API's entry point; only server/Dockerfile runs it (`node server/main.ts`)
+  "entry": ["server/main.ts"]
+}

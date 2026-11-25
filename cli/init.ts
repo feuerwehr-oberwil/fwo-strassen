@@ -35,13 +35,13 @@ export function matchMunicipalities(list: Municipality[], query: string): Munici
 }
 
 /** The town name for the app title: «Oberwil (BL)» → «Oberwil». */
-export const townName = (m: Municipality) => m.name.replace(/\s*\([A-Z]{2}\)$/, '')
+const townName = (m: Municipality) => m.name.replace(/\s*\([A-Z]{2}\)$/, '')
 
 /** «Allschwil (BL), BFS 2762»; names like «Oberwil (BL)» carry their canton already. */
 const label = (m: Municipality) => `${/\([A-Z]{2}\)$/.test(m.name) ? m.name : `${m.name} (${m.canton})`}, BFS ${m.bfs}`
 
 /** French-speaking cantons default to French, the rest to German. */
-export const defaultLanguage = (m: Municipality): Region['language'] =>
+const defaultLanguage = (m: Municipality): Region['language'] =>
   ['GE', 'VD', 'NE', 'JU'].includes(m.canton) ? 'fr' : 'de'
 
 /**

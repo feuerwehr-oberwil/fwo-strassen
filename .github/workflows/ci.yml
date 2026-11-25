@@ -1,5 +1,5 @@
 # Lint, tests and the production build on every pull request (deploy.yml repeats them on main
-# before publishing).
+# before publishing), plus the dead-code and duplicate check (static-analysis, PRs only).
 name: CI
 
 on:
@@ -24,3 +24,18 @@ jobs:
       - run: pnpm test
       # the production build: type check (tsc -b), vite build, then the CLI's `build` into dist/
       - run: pnpm build
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # knip (knip.json): fails on any unused file, export, type or dependency.
+      # jscpd (.jscpd.json, JSON without comments): fails when duplicated lines exceed `threshold`
+      # (0.5 %, today 0.18 %); clones are blocks of at least 70 tokens.
+      - run: pnpm lint:dead

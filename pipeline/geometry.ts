@@ -12,7 +12,7 @@ export const distance = (a: XY, b: XY) => Math.sqrt((b[0] - a[0]) ** 2 + (b[1] -
 export const lineLength = (line: Line) => line.slice(1).reduce((sum, p, i) => sum + distance(line[i]!, p), 0)
 
 /** Distance from `p` to the segment a–b. */
-export function pointSegmentDistance(p: XY, a: XY, b: XY): number {
+function pointSegmentDistance(p: XY, a: XY, b: XY): number {
   const [dx, dy] = [b[0] - a[0], b[1] - a[1]]
   const len2 = dx * dx + dy * dy
   if (len2 === 0) return distance(p, a)

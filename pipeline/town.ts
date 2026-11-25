@@ -239,7 +239,7 @@ export function numberingEnds(lines: Line[], points: XY[], numbers: number[]): [
 }
 
 /** Other streets meeting this section, in order along its longest piece. */
-export function crossStreets(section: Line[], ownId: string, streets: SourceData['streets']): string[] {
+function crossStreets(section: Line[], ownId: string, streets: SourceData['streets']): string[] {
   const main = section.reduce((a, b) => (lineLength(b) > lineLength(a) ? b : a))
   const found = streets
     .filter((s) => s.id !== ownId && linesDistance(s.lines, section) < 3)
