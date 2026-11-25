@@ -35,7 +35,7 @@ export async function cachedZip(url: string, cache: string): Promise<string> {
  * Extracts a zip (stored or deflated entries, no zip64) into `into`. Each file keeps its entry's
  * time as mtime, so a source can tell when the data was published (swisstopo's export time).
  */
-export async function unzip(zip: string, into: string): Promise<void> {
+async function unzip(zip: string, into: string): Promise<void> {
   const dir = resolve(into)
   const fd = openSync(zip, 'r')
   try {

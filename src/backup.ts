@@ -29,7 +29,7 @@ export function hasNewer(local: Cards, remote: Cards): boolean {
 /** `name` as typed, shown on this device only; `key` is what the server knows. */
 export type Profile = { name: string; key: string }
 /** off: no server configured · none: no profile on this device yet. */
-export type BackupStatus = 'off' | 'none' | 'saving' | 'saved' | 'offline'
+type BackupStatus = 'off' | 'none' | 'saving' | 'saved' | 'offline'
 
 /** Pulls the backup and returns its cards; null if the profile has no backup yet. */
 async function pull(key: string): Promise<Cards | null> {

@@ -17,7 +17,7 @@ export async function* readCsv(path: string, keep: (line: string) => boolean): A
   }
 }
 
-export function splitLine(line: string): string[] {
+function splitLine(line: string): string[] {
   const cells: string[] = []
   let [cell, quoted] = ['', false]
   for (let i = 0; i < line.length; i++) {

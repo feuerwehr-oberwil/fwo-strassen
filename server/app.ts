@@ -8,8 +8,8 @@ import { cors } from 'hono/cors'
 // survives Safari's storage eviction and moves to a new phone. No accounts, no names, no PINs:
 // a hash and an opaque JSON blob of cards.
 
-export const KEY = /^[0-9a-f]{64}$/
-export const MAX_BYTES = 200_000 // a full set of cards is ~30 KB
+const KEY = /^[0-9a-f]{64}$/
+const MAX_BYTES = 200_000 // a full set of cards is ~30 KB
 export const RATE = 120 // requests per minute and client IP
 const WINDOW_MS = 60_000
 

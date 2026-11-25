@@ -10,7 +10,7 @@ import { neighbours, sectionKey, type Item } from './town'
 export type Mode = 'find' | 'name'
 
 /** One new street on an intro screen; `withNumbers` when the round also asks its house numbers. */
-export type IntroItem = { item: Item; withNumbers: boolean }
+type IntroItem = { item: Item; withNumbers: boolean }
 
 export type Question =
   | { kind: 'intro'; key: string; items: IntroItem[] }

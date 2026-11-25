@@ -1,7 +1,7 @@
 import type { Messages } from './de.ts'
 import { messages, type Language } from './messages.ts'
 
-export { messages, type Language }
+export type { Language }
 
 // The page's language: `strassen-trainer build` (cli/site.ts) and the dev server write region.json's
 // into <html lang>, so the copy is known before any data loads. Tests run without a DOM: German.

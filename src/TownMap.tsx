@@ -17,7 +17,7 @@ import { ROUTE_COLOR, TONE_COLOR, TRUCK_COLOR, type Tone } from './palette'
 import { cutLine, segmentDistance, type BBox, type LngLat, type Town } from './town'
 
 /** Extra lines (house-number sections) or points (street ends) drawn on top, pickable by `key`. */
-export type Overlay = { key: number; geometry: Geometry; color: string }
+type Overlay = { key: number; geometry: Geometry; color: string }
 /**
  * A badge on the map: a name above a line, or a round numbered `pin` on it. `muted`: a point of
  * reference (grey on white), not part of the question.

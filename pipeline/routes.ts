@@ -289,7 +289,7 @@ export type RouteResult = {
   lengths: Map<string, number>
 }
 
-export function buildRoutes(town: Town, osm: Osm, options: Options): RouteResult {
+function buildRoutes(town: Town, osm: Osm, options: Options): RouteResult {
   const toMetric = proj4('WGS84', options.crs)
   const net = network(osm, options)
   const { best, path: pathTo } = net.shortestTree(net.nearest(toMetric.forward(town.station)))
