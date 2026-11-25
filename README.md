@@ -56,6 +56,7 @@ This repo is laid out like a town folder for Oberwil: `region.json`, `data/` (co
 pnpm install
 pnpm dev        # http://localhost:5173
 pnpm lint && pnpm test && pnpm build
+pnpm lint:dead  # knip (unused files, exports, deps) + jscpd (duplicates), as in CI
 ```
 
 `pnpm build` runs `vite build`, which writes the town-independent app to `app/`, then

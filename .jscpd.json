@@ -1,0 +1,20 @@
+{
+  "minTokens": 70,
+  "threshold": 0.5,
+  "reporters": ["console"],
+  "gitignore": true,
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "app/**",
+    "cli-dist/**",
+    "data/**",
+    "public/**",
+    "docs/**",
+    "**/*.json",
+    "pnpm-lock.yaml",
+    "**/*.md",
+    "**/__snapshots__/**",
+    "**/fixtures/**"
+  ]
+}
